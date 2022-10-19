@@ -6,23 +6,32 @@ Created on Sat Oct 15 19:25:02 2022
 """
 
 import tkinter as tk
-from NeuralNetwork import NeuralNetwork,NeuralGroup,Neuron,Connection
+from math import sqrt
+from NeuralNetwork import Sigmoid,NeuralNetwork,NeuralGroup,Neuron,Connection
+
+def rgb_to_hex(color_rgb):
+    color_red = hex(int(255*color_rgb[0])).removeprefix('0x').zfill(2)
+    color_green = hex(int(255*color_rgb[1])).removeprefix('0x').zfill(2)
+    color_blue = hex(int(255*color_rgb[2])).removeprefix('0x').zfill(2)
+    return '#' + color_red + color_green + color_blue
 
 class NeuralNetworkCanvas(tk.Canvas):
     def __init__(self, network=[], master=None, cnf={}, **kw):
         tk.Canvas.__init__(self, master, cnf, **kw)
         self.title = "Neural Network Canvas"
-        
-        self.neuralGroups=[]
-        self.neurons=[]
+        self.name = 'Neural Network'
         
         if network==[]:
             self.network=NeuralNetwork()
         else:
             self.network=network
-            self.updateNeuralGroups()
-            self.updateNeurons()
-            self.updateConnections()
+            
+        self.neuralGroups=[]
+        self.neurons=[]
+        # for neuron in self.network.neurons:
+        #     DrawableNeuron(self, neuron=neuron)
+        # for neuralGroup in self.neuralGroups:
+        #     DrawableNeuralGroup(self, neuralGroup)
         
         self.selected=[]
         self.optPanel = []
@@ -30,6 +39,8 @@ class NeuralNetworkCanvas(tk.Canvas):
         self.bind('<ButtonPress>', self.buttonPressCallback, add='+')
         self.bind('<ButtonRelease>', self.buttonReleaseCallback, add='+')
         self.bind('<Motion>', self.buttonMotionCallback, add='+')
+        
+        self.layers = []
     
     def getRoot(self, child):
         if child.master==None:
@@ -38,34 +49,77 @@ class NeuralNetworkCanvas(tk.Canvas):
             return self.getRoot(child.master)
     
     def buttonPressCallback(self, event):
-        self.selected = []
-        for g in self.neuralGroups:
-            dx = event.x-g.x
-            dy = event.y-g.y
-            w = g.width
-            h = g.height
-            if dx>0 and dy>0 and dx<w and dy<h:
-                self.selected = g
-                self.selected.dx = dx
-                self.selected.dy = dy
+        selected_id = list(self.find_overlapping(event.x, event.y, event.x+1, event.y+1))
+        if len(selected_id)==0:
+            self.selected = []
+            return
+        closest = self.find_closest(event.x, event.y)[0]
+        for ng in self.neuralGroups:
+            if ng.on_canvas.count(closest)>0:
+                self.selected = ng
+                self.selected.dx = event.x-ng.x
+                self.selected.dy = event.y-ng.y
+                self.selected.setLayer(1)
                 return
-            # for n in g.neurons:
-            #     for c in n.connections:
-            #         px1 = c.owner.x
-            #         py1 = c.owner.y
-            #         px2 = c.connected.x
-            #         py2 = c.connected.y
-        for e in self.neurons:
-            dx = event.x-e.x
-            dy = event.y-e.y
-            r = e.radius
-            if dx*dx+dy*dy<r*r:
-                self.selected = e
-                self.selected.dx = dx
-                self.selected.dy = dy
+            for n in ng.neurons:
+                if n.on_canvas.count(closest)>0:
+                    self.selected = n
+                    self.selected.dx = event.x-n.x
+                    self.selected.dy = event.y-n.y
+                    self.selected.setLayer(1)
+                    return
+                for d in n.dentrites:
+                    if d.on_canvas.count(closest)>0:
+                        self.selected = d
+                        self.selected.dx = event.x-d.x
+                        self.selected.dy = event.y-d.y
+                        self.selected.setLayer(1)
+                        return
+        for n in self.neurons:
+            if n.on_canvas.count(closest)>0:
+                self.selected = n
+                self.selected.dx = event.x-n.x
+                self.selected.dy = event.y-n.y
+                self.selected.setLayer(1)
                 return
+            for d in n.dentrites:
+                if d.on_canvas.count(closest)>0:
+                    self.selected = d
+                    self.selected.dx = event.x-d.x
+                    self.selected.dy = event.y-d.y
+                    self.selected.setLayer(1)
+                    return
+        # for g in self.neuralGroups:
+        #     dx = event.x-g.x
+        #     dy = event.y-g.y
+        #     w = g.width
+        #     h = g.height
+        #     if dx>0 and dy>0 and dx<w and dy<h:
+        #         self.selected = g
+        #         self.selected.dx = dx
+        #         self.selected.dy = dy
+        #         return
+        #     # for n in g.neurons:
+        #     #     for c in n.dentrites:
+        #     #         px1 = c.dentrite.x
+        #     #         py1 = c.dentrite.y
+        #     #         px2 = c.axon.x
+        #     #         py2 = c.axon.y
+        # for e in self.neurons:
+        #     dx = event.x-e.x
+        #     dy = event.y-e.y
+        #     r = e.radius
+        #     if dx*dx+dy*dy<r*r:
+        #         self.selected = e
+        #         self.selected.dx = dx
+        #         self.selected.dy = dy
+        #         return
     
     def buttonReleaseCallback(self, event):
+        if self.selected==[]:
+            pass
+        else:
+            self.selected.setLayer(0)
         self.selected=[]
     
     def buttonMotionCallback(self, event):
@@ -73,37 +127,38 @@ class NeuralNetworkCanvas(tk.Canvas):
             return
         self.selected.coords(self, event.x, event.y)
     
-    def addNeuron(self, neuron):
-        self.neurons.append(neuron)
-        self.network.addNeuron(neuron.neuron)
-        self.draw()
-    
-    def addNeuralGroup(self, neuralGroup):
-        self.neuralGroups.append(neuralGroup)
-        self.network.addNeuron(neuralGroup.neuralGroup)
-        self.draw()
-    
-    def updateNeuralGroups(self):
-        self.neuralGroups = [DrawableNeuralGroup(self.network.neuralGroups[i]) for i in range(len(self.network.neuralGroups))]
-    
-    def updateNeurons(self):
-        self.neurons = [DrawableNeuron(self.network.neurons[i]) for i in range(len(self.network.neurons))]
-    
-    def updateConnections(self):
+    def updateNetwork(self):
+        self.neurons = []
+        self.neuralGroups = []
+        for neuron in self.network.neurons:
+            DrawableNeuron(self, neuron=neuron)
         for neuralGroup in self.neuralGroups:
-            for neuron in neuralGroup.neurons:
-                for connection in neuron.neuron.connections:
-                    connected = self.findDrawableNeuron(connection.connected)
-                    neuron.connections.append(DrawableConnection(connection, neuron, connected))
-        for neuron in self.neurons:
-            for connection in neuron.neuron.connections:
-                connected = self.findDrawableNeuron(connection.connected)
-                neuron.connections.append(DrawableConnection(connection, neuron, connected))
+            DrawableNeuralGroup(self, neuralGroup)
+    
+    # def updateNeuralGroups(self):
+    #     self.neuralGroups = [DrawableNeuralGroup(self.network.neuralGroups[i]) for i in range(len(self.network.neuralGroups))]
+    
+    # def updateNeurons(self):
+    #     self.neurons = [DrawableNeuron(self.network.neurons[i]) for i in range(len(self.network.neurons))]
+    
+    # def updateConnections(self):
+    #     for neuralGroup in self.neuralGroups:
+    #         for neuron in neuralGroup.neurons:
+    #             for connection in neuron.neuron.dentrites:
+    #                 axon = self.findDrawableNeuron(connection.axon)
+    #                 neuron.dentrites.append(DrawableConnection(connection, neuron, axon))
+    #     for neuron in self.neurons:
+    #         for connection in neuron.neuron.dentrites:
+    #             axon = self.findDrawableNeuron(connection.axon)
+    #             neuron.dentrites.append(DrawableConnection(connection, neuron, axon))
     
     def newNetwork(self, network=[]):
-        self.network = network
-        self.neuralGroups = [DrawableNeuralGroup(network.neuralGroups[i]) for i in range(len(network.neuralGroups))]
-        self.neurons = [DrawableNeuron(network.neurons[i]) for i in range(len(network.neurons))]
+        if network==[]:
+            self.network = NeuralNetwork()
+        else:
+            self.network = network
+        # self.neuralGroups = [DrawableNeuralGroup(self.network, network.neuralGroups[i]) for i in range(len(network.neuralGroups))]
+        # self.neurons = [DrawableNeuron(self.network, network.neurons[i]) for i in range(len(network.neurons))]
     
     def findDrawableNeuron(self, neuron):
         for i in range(len(self.neurons)):
@@ -112,19 +167,85 @@ class NeuralNetworkCanvas(tk.Canvas):
         return []
     
     def draw(self):
-        self.delete('all')
-        for neuralGroup in self.neuralGroups:
-            neuralGroup.drawSelf(self)
-        for neuron in self.neurons:
-            neuron.drawSelf(self)
+        layers = [[] for i in range(4)]
+        # tags = [[] for i in range(4)]
+        
+        for neuralGroup in self.neuralGroups.copy():
+            if neuralGroup.toDraw:
+                neuralGroup.drawSelf(self)
+            layers[neuralGroup.layer].append(neuralGroup.on_canvas)
+                    
+            for neuron in neuralGroup.neurons.copy():
+                if neuron.toDraw:
+                    neuron.drawSelf(self)
+                layers[neuron.layer].append(neuron.on_canvas)
+                        
+                for dentrite in neuron.dentrites.copy():
+                    if dentrite.toDraw:
+                        dentrite.drawSelf(self)
+                    layers[dentrite.layer].append(dentrite.on_canvas)
+                            
+                # for axon in neuron.axons.copy():
+                #     if axon.toDraw:
+                #         axon.drawSelf(self)
+                #     layers[axon.layer].append(axon.on_canvas)
+                            
+        for neuron in self.neurons.copy():
+            if neuron.toDraw:
+                neuron.drawSelf(self)
+            layers[neuron.layer].append(neuron.on_canvas)
+                    
+            for dentrite in neuron.dentrites.copy():
+                if dentrite.toDraw:
+                    dentrite.drawSelf(self)
+                layers[dentrite.layer].append(dentrite.on_canvas)
+                        
+            # for axon in neuron.axons.copy():
+            #     if axon.toDraw:
+            #         axon.drawSelf(self)
+            #     layers[axon.layer].append(axon.on_canvas)
+                        
+        
+        order = self.find_all()
+        layers = self.__union(self.__flatten(layers), order)
+        # union = [order.count(L) for L in layers]
+        # counter = [layers.count(L) for L in layers]
+        # print(len(order))
+        # print(len(layers))
+        # print(union)
+        # print(counter)
+        # while True:
+        #     pass
+        
+        for i in range(len(layers)-1):
+            self.tag_raise(layers[i+1], layers[i])
+            
+    
+    def __union(self, l1, l2):
+        u = []
+        for e in l1:
+            if l2.count(e)>0:
+                u += [e]
+        return u
+    
+    def __flatten(self, l):
+        if l.__class__==list or l.__class__==tuple:
+            flattened = []
+            for e in l:
+                flattened += self.__flatten(e)
+            return flattened
+        else:
+            return [l]
 
 class DrawableNeuralGroup:
-    def __init__(self, neuralGroup=[], x=0, y=0, width=30, height=50):
+    def __init__(self, network, neuralGroup=[], x=0, y=0, width=30, height=50):
+        self.network = network
         if neuralGroup==[]:
-            self.neuralGroup = NeuralGroup()
+            self.neuralGroup = NeuralGroup(self.network.network)
         else:
             self.neuralGroup = neuralGroup
         
+        self.state = 'alive'
         self.x=x
         self.y=y
         self.dx=0
@@ -132,25 +253,39 @@ class DrawableNeuralGroup:
         self.height=height
         self.width=width
         self.on_canvas = []
-        self.name = 'Neural Group'
-        self.neurons = [DrawableNeuron(self.neuralGroup.neurons[i]) for i in range(len(self.neuralGroup.neurons))]
+        self.name = 'NeuralGroup'
+        self.tag = str(self).split()[-1]
+        self.neurons = [DrawableNeuron(self, self.neuralGroup.neurons[i]) for i in range(len(self.neuralGroup.neurons))]
+        
+        self.network.neuralGroups.append(self)
+        self.layer = 1
+        self.toDraw = True
     
-    def addNeuron(self, neuron):
-        self.neurons.append(neuron)
-        self.neuralGroup.addNeuron(neuron.neuron)
-        self.height = 30*len(self.neurons)
+    def setLayer(self, layer):
+        if layer==1:
+            self.layer = 3
+        elif layer==0:
+            self.layer = 2
+        for n in self.neurons:
+            n.setLayer(layer)
     
-    def addConnection(self, n):
-        if n.__class__==DrawableNeuralGroup:
-            for neuron in self.neurons:
-                for connected in n.neurons:
-                    neuron.addConnection(DrawableConnection(neuron, connected))
-        elif n.__class__==DrawableNeuron:
-            for neuron in self.neurons:
-                neuron.addConnection(DrawableConnection(neuron, n))
+    def ungroup(self):
+        self.state = 'toKill'
+        for neuron in self.neurons:
+            neuron.network = self.network
+            neuron.neuron.network = self.network.network
+        self.neuralGroup.ungroup()
     
-    def kill(self):
-        pass
+    def kill(self, childSupport=True):
+        for neuron in self.neurons:
+            neuron.kill(childSupport=False)
+        if childSupport==True:
+            self.neuralGroup.kill()
+        self.state = 'toKill'
+        self.toDraw = True
+    
+    def fitToContent(self):
+        self.height = 35*len(self.neurons)
     
     def coords(self, canvas, x, y):
         self.x = x-self.dx
@@ -167,148 +302,301 @@ class DrawableNeuralGroup:
         for i in range(N):
             self.neurons[i].x=px
             py=self.y + (i+0.5)*self.height/(N)
+            self.neurons[i].dx=0
+            self.neurons[i].dy=0
             self.neurons[i].coords(canvas, px, py)
     
     def drawSelf(self, canvas):
-        canvas.delete(self.on_canvas)
+        self.toDraw = False
+        for d in self.on_canvas:
+            canvas.delete(d)
         self.on_canvas = []
+        if self.state=='toKill':
+            self.network.neuralGroups.remove(self)
+            for neuron in self.neurons.copy():
+                neuron.drawSelf(canvas)
+            self.state='dead'
+            del self
+            return
         
         p1 = (self.x,self.y)
         p2 = (self.x+self.width,self.y+self.height)
-        self.on_canvas.append(canvas.create_rectangle(p1, p2, fill='blue', tag=self.name))
+        self.on_canvas.append(canvas.create_rectangle(p1, p2, fill='blue', tag=self.tag))
         
         N = len(self.neurons)
         px = self.x+self.width/2
         for i in range(N):
             self.neurons[i].x=px
             self.neurons[i].y=self.y + (i+0.5)*self.height/(N)
+            self.neurons[i].dx=0
+            self.neurons[i].dy=0
             self.neurons[i].drawSelf(canvas)
+        
+        # while canvas.findAbove(self.tag):
+        #     tk.Canvas.
 
 class DrawableNeuron:
-    def __init__(self, neuron=[], x=0, y=0, radius=10):
+    def __init__(self, network, neuron=[], x=0, y=0, radius=10):
+        self.network = network
         if neuron==[]:
-            self.neuron = Neuron()
+            if self.network.__class__==NeuralNetworkCanvas:
+                self.neuron = Neuron(self.network.network)
+            elif self.network.__class__==DrawableNeuralGroup:
+                self.neuron = Neuron(self.network.neuralGroup)
         else:
             self.neuron = neuron
-        self.connections = []
-        self.connected_by = []
+        self.dentrites = []
+        self.axons = []
         
+        self.state = 'alive'
         self.x = x
         self.y = y
         self.dx = 0
         self.dy = 0
         self.radius = radius
-        self.excitement_color = 'gray'
-        self.bias_color='blue'
         self.on_canvas = []
         self.name = 'Neuron'
+        self.tag = str(self).split()[-1]
+        
+        self.network.neurons.append(self)
+        self.layer = 1
+        self.toDraw = True
     
-    def addConnection(self, connection):
-        self.connections.append(connection)
-        self.neuron.addConnection(connection.connection)
+    def setLayer(self, layer):
+        if layer==1:
+            self.layer = 3
+        elif layer==0:
+            self.layer = 2
+        for d in self.dentrites:
+            d.setLayer(layer)
 
-    def kill(self):
-        pass
+    def kill(self, childSupport=True):
+        for dentrite in self.dentrites:
+            dentrite.kill(childSupport=False)
+        for axon in self.axons:
+            axon.kill(childSupport=False)
+        if childSupport==True:
+            self.neuron.kill()
+        self.state = 'toKill'
+        self.toDraw = True
     
     def coords(self, canvas, x, y):
         self.x = x-self.dx
         self.y = y-self.dy
         
-        for i in range(len(self.connections)):
-            self.connections[i].coords(canvas)
-        for i in range(len(self.connected_by)):
-            self.connected_by[i].coords(canvas)
+        for i in range(len(self.dentrites)):
+            self.dentrites[i].coords(canvas)
+        for i in range(len(self.axons)):
+            self.axons[i].coords(canvas)
         
+        points = [self.x-self.radius*1.2,
+                  self.y-self.radius*1.2,
+                  self.x+self.radius*1.2,
+                  self.y+self.radius*1.2]
+        canvas.coords(self.on_canvas[0], points)
         points = [self.x-self.radius,
                   self.y-self.radius,
                   self.x+self.radius,
                   self.y+self.radius]
-        canvas.coords(self.on_canvas[0], points)
+        canvas.coords(self.on_canvas[1], points)
         points = [self.x-self.radius*0.7,
                   self.y-self.radius*0.7,
                   self.x+self.radius*0.7,
                   self.y+self.radius*0.7]
-        canvas.coords(self.on_canvas[1], points)
+        canvas.coords(self.on_canvas[2], points)
     
     def drawSelf(self, canvas):
-        canvas.delete(self.on_canvas)
+        self.toDraw = False
+        for d in self.on_canvas:
+            canvas.delete(d)
         self.on_canvas = []
-        for i in range(len(self.connections)):
-            self.connections[i].drawSelf(canvas)
+        if self.state=='toKill':
+            self.network.neurons.remove(self)
+            for dentrite in self.dentrites.copy():
+                dentrite.drawSelf(canvas)
+            for axon in self.axons.copy():
+                axon.drawSelf(canvas)
+            self.state='dead'
+            del self
+            return
         
+        for i in range(len(self.dentrites)):
+            self.dentrites[i].drawSelf(canvas)
+        
+        points = (
+                (self.x-self.radius*1.2,self.y-self.radius*1.2),
+                (self.x+self.radius*1.2,self.y+self.radius*1.2)
+            )
+        self.on_canvas.append(canvas.create_oval(points, fill='white', tag=self.tag))
+        
+        if self.neuron.bias > 0:
+            color_hex = rgb_to_hex((0,self.neuron.bias,0))
+        else:
+            color_hex = rgb_to_hex((self.neuron.bias,0,0))
         points = (
                 (self.x-self.radius,self.y-self.radius),
                 (self.x+self.radius,self.y+self.radius)
             )
-        self.on_canvas.append(canvas.create_oval(points, fill=self.bias_color, tag=self.name))
+        self.on_canvas.append(canvas.create_oval(points, fill=color_hex, tag=self.tag))
+    
+        color_hex = rgb_to_hex((0,self.neuron.activation,0))
         points = (
                 (self.x-self.radius*0.7,self.y-self.radius*0.7),
                 (self.x+self.radius*0.7,self.y+self.radius*0.7)
             )
-        self.on_canvas.append(canvas.create_oval(points, fill=self.excitement_color, tag=self.name))
+        self.on_canvas.append(canvas.create_oval(points, fill=color_hex, tag=self.tag))
 
 class DrawableConnection:
-    def __init__(self, owner, connected, connection=[], width=3):
+    def __init__(self, dentrite, axon, connection=[], width=3):
+        if dentrite.__class__==DrawableNeuron and axon.__class__==DrawableNeuron:
+            pass
+        elif dentrite.__class__==DrawableNeuralGroup and axon.__class__==DrawableNeuron:
+            for neuron in dentrite.neurons:
+                DrawableConnection(neuron, axon)
+            return
+        elif dentrite.__class__==DrawableNeuron and axon.__class__==DrawableNeuralGroup:
+            for neuron in axon.neurons:
+                DrawableConnection(dentrite, neuron)
+            return
+        elif dentrite.__class__==DrawableNeuralGroup and axon.__class__==DrawableNeuralGroup:
+            for neuron1 in dentrite.neurons:
+                for neuron2 in axon.neurons:
+                    DrawableConnection(neuron1, neuron2)
+            return
+        else:
+            return
+        
         if connection==[]:
-            self.connection = Connection(owner, connected)
+            self.connection = Connection(dentrite.neuron, axon.neuron)
         else:
             self.connection = connection
-        self.owner = owner
-        self.connected = connected
-        connected.connected_by.append(self)
+        self.dentrite = dentrite
+        self.axon = axon
+        self.dentrite.dentrites.append(self)
+        self.axon.axons.append(self)
         
+        self.state = 'alive'
         self.width=width
-        self.weight_color='gray'
         self.on_canvas = []
         self.name = 'Connection'
+        self.tag = str(self).split()[-1]
+        self.layer = 0
+        self.toDraw = True
+    
+    def setLayer(self, layer):
+        if layer==1:
+            self.layer = 1
+        elif layer==0:
+            self.layer = 0
 
-    def kill(self):
-        pass
+    def kill(self, childSupport=True):
+        if childSupport==True:
+            self.connection.kill()
+        self.state = 'toKill'
+        self.toDraw = True
     
     def coords(self, canvas):
-        x0 = self.owner.x
-        y0 = self.owner.y
-        x1 = self.connected.x
-        y1 = self.connected.y
+        x0 = self.dentrite.x
+        y0 = self.dentrite.y
+        x1 = self.axon.x
+        y1 = self.axon.y
         w = self.width
+        
+        meanX = (x0+x1)/2
+        meanY = (y0+y1)/2
+        
         points = [x0-w,y0-w,
                   x0+w,y0+w,
-                  x1-w,y1-w,
-                  x1+w,y1+w]
+                  meanX,meanY]
         canvas.coords(self.on_canvas[0], points)
         points = [x0-w,y0+w,
                   x0+w,y0-w,
-                  x1-w,y1+w,
-                  x1+w,y1-w]
+                  meanX,meanY]
         canvas.coords(self.on_canvas[1], points)
+        points = [x1-w,y1-w,
+                  x1+w,y1+w,
+                  meanX,meanY]
+        canvas.coords(self.on_canvas[2], points)
+        points = [x1-w,y1+w,
+                  x1+w,y1-w,
+                  meanX,meanY]
+        canvas.coords(self.on_canvas[3], points)
+        
+        points = [x0-w/2,y0-w/2,
+                  x0+w/2,y0+w/2,
+                  meanX,meanY]
+        canvas.coords(self.on_canvas[4], points)
+        points = [x0-w/2,y0+w/2,
+                  x0+w/2,y0-w/2,
+                  meanX,meanY]
+        canvas.coords(self.on_canvas[5], points)
+        points = [x1-w/2,y1-w/2,
+                  x1+w/2,y1+w/2,
+                  meanX,meanY]
+        canvas.coords(self.on_canvas[6], points)
+        points = [x1-w/2,y1+w/2,
+                  x1+w/2,y1-w/2,
+                  meanX,meanY]
+        canvas.coords(self.on_canvas[7], points)
     
     def drawSelf(self, canvas):
-        canvas.delete(self.on_canvas)
+        self.toDraw = False
+        for d in self.on_canvas:
+            canvas.delete(d)
         self.on_canvas = []
-        x0 = self.owner.x
-        y0 = self.owner.y
-        x1 = self.connected.x
-        y1 = self.connected.y
+        if self.state=='toKill':
+            self.dentrite.dentrites.remove(self)
+            self.axon.axons.remove(self)
+            self.state='dead'
+            del self
+            return
+        
+        x0 = self.dentrite.x
+        y0 = self.dentrite.y
+        x1 = self.axon.x
+        y1 = self.axon.y
         w = self.width
-        points = (
-                (x0-w,y0-w),
-                (x0+w,y0+w),
-                (x1-w,y1-w),
-                (x1+w,y1+w)
-            )
-        self.on_canvas.append(canvas.create_polygon(points, fill=self.weight_color, tag=self.name))
-        points = (
-                (x0-w,y0+w),
-                (x0+w,y0-w),
-                (x1-w,y1+w),
-                (x1+w,y1-w)
-            )
-        self.on_canvas.append(canvas.create_polygon(points, fill=self.weight_color, tag=self.name))
-    
-    def getRoot(self):
-        if self.master==None:
-            return None
-        return self.master.getRoot()
+        
+        meanX = (x0+x1)/2
+        meanY = (y0+y1)/2
+        
+        points = [x0-w,y0-w,
+                  x0+w,y0+w,
+                  meanX,meanY]
+        self.on_canvas.append(canvas.create_polygon(points, fill='blue', tag=self.tag))
+        points = [x0-w,y0+w,
+                  x0+w,y0-w,
+                  meanX,meanY]
+        self.on_canvas.append(canvas.create_polygon(points, fill='blue', tag=self.tag))
+        points = [x1-w,y1-w,
+                  x1+w,y1+w,
+                    meanX,meanY]
+        self.on_canvas.append(canvas.create_polygon(points, fill='red', tag=self.tag))
+        points = [x1-w,y1+w,
+                  x1+w,y1-w,
+                    meanX,meanY]
+        self.on_canvas.append(canvas.create_polygon(points, fill='red', tag=self.tag))
+        
+        if self.connection.weight > 0:
+            color_hex = rgb_to_hex((0,Sigmoid(self.connection.weight),0))
+        else:
+            color_hex = rgb_to_hex((Sigmoid(self.connection.weight),0,0))
+        points = [x0-w/2,y0-w/2,
+                  x0+w/2,y0+w/2,
+                    meanX,meanY]
+        self.on_canvas.append(canvas.create_polygon(points, fill=color_hex, tag=self.tag))
+        points = [x0-w/2,y0+w/2,
+                  x0+w/2,y0-w/2,
+                    meanX,meanY]
+        self.on_canvas.append(canvas.create_polygon(points, fill=color_hex, tag=self.tag))
+        points = [x1-w/2,y1-w/2,
+                  x1+w/2,y1+w/2,
+                    meanX,meanY]
+        self.on_canvas.append(canvas.create_polygon(points, fill=color_hex, tag=self.tag))
+        points = [x1-w/2,y1+w/2,
+                  x1+w/2,y1-w/2,
+                  meanX,meanY]
+        self.on_canvas.append(canvas.create_polygon(points, fill=color_hex, tag=self.tag))
 
 class OptionsPanel(tk.Frame):
     def __init__(self, canvas=[], master=None, cnf={}, **kw):
@@ -319,16 +607,16 @@ class OptionsPanel(tk.Frame):
         else:
             self.canvas.bind('<ButtonPress>', self.pressedButtonCallback, add='+')
         
-        self.neuronOptions = self.NeuronOptions(master=self, bg='black')
+        self.neuronOptions = self.NeuronOptions(master=self, width=100, bg='black')
         self.neuronOptions.pack_forget()
         self.neuronOptions.canvas = self.canvas
-        self.neuralGroupOptions = self.NeuralGroupOptions(master=self, bg='black')
+        self.neuralGroupOptions = self.NeuralGroupOptions(master=self, width=100, bg='black')
         self.neuralGroupOptions.pack_forget()
         self.neuralGroupOptions.canvas = self.canvas
-        self.connectionOptions = self.ConnectionOptions(master=self, bg='black')
+        self.connectionOptions = self.ConnectionOptions(master=self, width=100, bg='black')
         self.connectionOptions.pack_forget()
         self.connectionOptions.canvas = self.canvas
-        self.otherOptions = self.OtherOptions(master=self, bg='black')
+        self.otherOptions = self.OtherOptions(master=self, width=100, bg='black')
         self.otherOptions.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         self.otherOptions.canvas = self.canvas
         self.placeHolder= tk.Frame(master=self, width=0, height=0)
@@ -341,10 +629,10 @@ class OptionsPanel(tk.Frame):
             pass
         else:
             self.canvas.unbind(self.pressedButtonCallback)
-        self.canvas=canvas
-        if self.canvas==[]:
+        if canvas==[]:
             pass
         else:
+            self.canvas=canvas
             self.canvas.bind('<ButtonPress>', self.pressedButtonCallback, add='+')
             self.neuronOptions.canvas=self.canvas
             self.neuralGroupOptions.canvas = self.canvas
@@ -357,6 +645,7 @@ class OptionsPanel(tk.Frame):
         else:
             if self.canvas.selected.__class__==DrawableNeuron:
                 self.neuronOptions.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+                self.currentPanel = self.neuronOptions
                 self.neuralGroupOptions.pack_forget()
                 self.connectionOptions.pack_forget()
                 self.otherOptions.pack_forget()
@@ -364,6 +653,7 @@ class OptionsPanel(tk.Frame):
             elif self.canvas.selected.__class__==DrawableNeuralGroup:
                 self.neuronOptions.pack_forget()
                 self.neuralGroupOptions.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+                self.currentPanel = self.neuralGroupOptions
                 self.connectionOptions.pack_forget()
                 self.otherOptions.pack_forget()
                 self.neuralGroupOptions.select(self.canvas.selected, event)
@@ -371,6 +661,7 @@ class OptionsPanel(tk.Frame):
                 self.neuronOptions.pack_forget()
                 self.neuralGroupOptions.pack_forget()
                 self.connectionOptions.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+                self.currentPanel = self.connectionOptions
                 self.otherOptions.pack_forget()
                 self.connectionOptions.select(self.canvas.selected, event)
             else:
@@ -378,10 +669,11 @@ class OptionsPanel(tk.Frame):
                 self.neuralGroupOptions.pack_forget()
                 self.connectionOptions.pack_forget()
                 self.otherOptions.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+                self.currentPanel = self.otherOptions
                 self.otherOptions.select(self.canvas.selected, event)
     
     class NeuronOptions(tk.Frame):
-        def __init__(self, neuron=[], master=None, cnf={}, **kw):
+        def __init__(self, master=None, cnf={}, **kw):
             tk.Frame.__init__(self, master, cnf, **kw)
             
             self.titleLb = tk.Label(master=self, text='Neuron', fg='white', bg='black')
@@ -403,13 +695,20 @@ class OptionsPanel(tk.Frame):
             self.selected=[]
         
         def select(self, selection, event):
-            pass
+            if self.waitingForInput==True:
+                self.waitingForInput = False
+                self.selectionFunction(selection, event)
+            else:
+                self.selected = selection
+        
+        def selectionFunction(self, selection, event):
+            DrawableConnection(self.selected, selection)
         
         def nameBtCb(self):
             pass
         
         def connectWithBtCb(self):
-            pass
+            self.waitingForInput = True
         
         def activationBtCb(self):
             pass
@@ -418,13 +717,12 @@ class OptionsPanel(tk.Frame):
             pass
         
         def killBtCb(self):
-            for s in self.selected:
-                s.kill()
+            self.selected.kill()
             self.master.neuronOptions.pack_forget()
             self.master.otherOptions.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
     
     class NeuralGroupOptions(tk.Frame):
-        def __init__(self, neuronGroup=[], master=None, cnf={}, **kw):
+        def __init__(self, master=None, cnf={}, **kw):
             tk.Frame.__init__(self, master, cnf, **kw)
             
             self.titleLb = tk.Label(master=self, text='Neural Group', fg='white', bg='black')
@@ -444,7 +742,14 @@ class OptionsPanel(tk.Frame):
             self.selected=[]
         
         def select(self, selection, event):
-            pass
+            if self.waitingForInput==True:
+                self.waitingForInput = False
+                self.selectionFunction(selection, event)
+            else:
+                self.selected = selection
+        
+        def selectionFunction(self, selection, event):
+            DrawableConnection(self.selected, selection)
         
         def nameBtCb(self):
             pass
@@ -453,11 +758,10 @@ class OptionsPanel(tk.Frame):
             pass
         
         def connectWithBtCb(self):
-            pass
+            self.waitingForInput = True
         
         def killBtCb(self):
-            for s in self.selected:
-                s.kill()
+            self.selected.kill()
             self.master.neuralGroupOptions.pack_forget()
             self.master.otherOptions.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
     
@@ -480,14 +784,17 @@ class OptionsPanel(tk.Frame):
             self.selected=[]
         
         def select(self, selection, event):
-            pass
+            if self.waitingForInput==True:
+                self.waitingForInput = False
+                self.selectionFunction(selection, event)
+            else:
+                self.selected = selection
         
         def weightBtCb(self):
             pass
         
         def killBtCb(self):
-            for s in self.selected:
-                s.kill()
+            self.selected.kill()
             self.master.connectionOptions.pack_forget()
             self.master.otherOptions.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
     
@@ -552,8 +859,7 @@ class OptionsPanel(tk.Frame):
             self.waitingForInput = True
         
         def birth_neuronSelectionFunction(self, selection, event):
-            print('Creating new neuron')
-            self.canvas.addNeuron(DrawableNeuron(x=event.x, y=event.y))
+            DrawableNeuron(self.canvas, x=event.x, y=event.y)
         
         def birth_neuralGroupBtCb(self):
             self.mainPanel.pack_forget()
@@ -564,11 +870,10 @@ class OptionsPanel(tk.Frame):
             self.waitingForInput = True
         
         def birth_neuralGroupSelectionFunction(self, selection, event):
-            print('Creating new neural group')
             N = int(self.birth_neuralGroup_sizeTb.get('1.0','end'))
-            neurons = [Neuron() for i in range(N)]
-            neuralGroup = NeuralGroup(neurons)
-            self.canvas.addNeuralGroup(DrawableNeuralGroup(neuralGroup, x=event.x, y=event.y, height=30*N))
+            neuralGroup = DrawableNeuralGroup(self.canvas, x=event.x, y=event.y, height=30*N)
+            for i in range(N):
+                DrawableNeuron(neuralGroup)
         
         def birth_neuralGroup_backBtCb(self):
             self.mainPanel.pack_forget()

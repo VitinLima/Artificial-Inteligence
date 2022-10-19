@@ -15,7 +15,7 @@ def Sigmoid(z):
     elif z>8:
         return SIGMOID[-1]
     else:
-        return SIGMOID(int(z))
+        return SIGMOID[int(z)]
 
 def d_Sigmoid(z):
     global D_SIGMOID
@@ -24,67 +24,90 @@ def d_Sigmoid(z):
     elif z>8:
         return D_SIGMOID[-1]
     else:
-        return D_SIGMOID(int(z))
+        return D_SIGMOID[int(z)]
 
 class NeuralNetwork:
     def __init__(self):
         self.neuralGroups = []
         self.neurons = []
-    
-    def addNeuron(self, neuron):
-        self.neurons.append(neuron)
 
 class NeuralGroup:
-    def __init__(self, neurons=[]):
-        self.neurons = neurons
+    def __init__(self, network):
+        self.network = network
+        self.neurons = []
+        
+        self.network.neuralGroups.append(self)
     
-    def addNeuron(self, neuron):
-        self.neurons.append(neuron)
+    def ungroup(self):
+        for neuron in self.neurons:
+            neuron.network = self.network
     
     def kill(self):
-        pass
+        for neuron in self.neurons:
+            neuron.kill()
+        del self
 
 class Neuron:
-    def __init__(self, bias=0, connections=[]):
-        self.excitement = 0.5
-        self.z_value = 0
+    def __init__(self, network, bias=0):
+        self.network = network
+        self.activation = 0.5
+        self.z_activation = 0
         self.bias = bias
-        self.connections = connections
+        self.dentrites = []
+        self.axons = []
+        
+        self.network.neurons.append(self)
     
-    def requestExcitement(self):
-        return self.excitement
+    def requestActivation(self):
+        return self.activation
     
-    def updateExcitement(self):
-        self.z_value = self.bias+sum([self.connections[i].requestExcitement() for i in range(len(self.connections))])
-        self.excitement = Sigmoid(self.z_value)
+    def updateActivation(self):
+        self.z_activation = self.bias+sum([self.dentrites[i].requestActivation() for i in range(len(self.dentrites))])
+        self.activation = Sigmoid(self.z_value)
     
-    def addConnection(self, connection):
-        self.connections.append(connection)
-    
-    def setExcitement(self, excitement):
-        self.excitement = excitement
+    def setActivation(self, activation):
+        self.activation = activation
     
     def learn(self, dc_dy):
         dc_dz = dc_dy*d_Sigmoid(self.z_value)
         self.bias -= dc_dz
-        for i in range(len(self.connections)):
-            self.connection[i].learn(dc_dz)
+        for i in range(len(self.dentrites)):
+            self.dentrites[i].learn(dc_dz)
     
     def kill(self):
-        pass
+        for dentrite in self.dentrites:
+            dentrite.kill()
+        for axon in self.axons:
+            axon.kill()
+        del self
 
 class Connection:
-    def __init__(self, owner, connected, weight=0):
-        self.owner = owner
-        self.connected = connected
-        self.weight = weight
+    def __init__(self, dentrite, axon, weight=0):
+        if dentrite.__class__==Neuron and axon.__class__==Neuron:
+            self.dentrite = dentrite
+            self.axon = axon
+            self.weight = weight
+            self.dentrite.dentrites.append(self)
+            self.axon.axons.append(self)
+        elif dentrite.__class__==NeuralGroup and axon.__class__==Neuron:
+            for neuron in dentrite.neurons:
+                Connection(neuron, axon, weight)
+        elif dentrite.__class__==Neuron and axon.__class__==NeuralGroup:
+            for neuron in axon.neurons:
+                Connection(dentrite, neuron, weight)
+        elif dentrite.__class__==NeuralGroup and axon.__class__==NeuralGroup:
+            for neuron1 in dentrite.neurons:
+                for neuron2 in axon.neurons:
+                    Connection(neuron1, neuron2, weight)
     
-    def requestExcitement(self):
-        return self.connected.requestExcitement()*self.weight
+    def requestActivation(self):
+        return self.axon.requestactivation()*self.weight
     
     def learn(self, dc_dz):
-        self.weight -= dc_dz*self.neuron.requestExcitement()
+        self.weight -= dc_dz*self.axon.requestActivation()
         self.neuron.learn(dc_dz*self.weight)
     
     def kill(self):
-        pass
+        self.dentrite.dentrites.remove(self)
+        self.axon.axons.remove(self)
+        del self
