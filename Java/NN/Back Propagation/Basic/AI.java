@@ -1,68 +1,59 @@
-package ai;
 
 import javax.swing.*;
 import java.awt.*;
 
 public class AI{
-	Neuron[] Ns;
+	private Neuron[] Ns;
 	
-	int[] output_ids;
-	int[] input_ids;
-	int[][] layers;
-	int ans;
+	private int[] outputIds;
+	private int[] inputIds;
 	
-	public AI(int[] ids){
-		int temp_int = 0;
-		for(int i:ids)
-			temp_int+=i;
-		Ns = new Neuron[temp_int];
+	private float[] output;
+	private int ans;
+	
+	public AI(){
+		Ns = new Neuron[0];
 		
-		for(int i = 0; i < Ns.length; i++)
-			Ns[i] = new Neuron(i);
+		outputIds = new int[0];
+		inputIds = new int[0];
 		
-		layers = new int[ids.length][];
-		temp_int = 0;
-		for(int i = 0; i < ids.length; i++){
-			layers[i] = new int[ids[i]];
-			for(int j = 0; j < ids[i]; j++)
-				layers[i][j] = temp_int++;
-		}
-		
-		for(int i = 1; i < layers.length; i++)
-			for(int j = 0; j < layers[i-1].length; j++)
-				for(int k = 0; k < layers[i].length; k++)
-					Ns[layers[i][k]].fconnect_to(Ns[layers[i-1][j]]);
-		
-		input_ids = layers[0];
-		output_ids = layers[layers.length-1];
-		
-		for(int i = 0; i < Ns.length; i++)
-			Ns[i].fset_random();
+		output = new float[0];
 	}
-	public void fset_input(float[] input){
-		for(int i = 0; i < Ns.length; i++)
-			Ns[i].freset_recursive();
+	
+	public void setInput(float[] input){
 		int k = 0;
-		for(int id:input_ids)
-			Ns[id].fset_value(input[k++]);
+		for(int id:inputIds)
+			Ns[id].setValue(input[k++]);
 	}
-	public int fstart(){
-		float[] output = new float[output_ids.length];
-		for(int i = 0; i < output_ids.length; i++){
-			Ns[output_ids[i]].fready_up(true);
-			while(!Ns[output_ids[i]].fready_up(false)[0]);
-			output[i] = Ns[output_ids[i]].fstart();
+	
+	public int getAns(){
+		start();
+		return ans;
+	}
+	
+	public float[] getOutput(){
+		start();
+		return output.clone();
+	}
+	
+	private void start(){
+		for(int i = 0; i < outputIds.length; i++){
+			Ns[outputIds[i]].checkActive();
+			
+			while(!Ns[outputIds[i]].isReady());
+			
+			output[i] = Ns[outputIds[i]].getValue(true);
 			for(int j = 0; j < Ns.length; j++)
-				Ns[j].freset_ready();
+				Ns[j].reset();
 		}
 		
 		ans = 0;
-		for(int i = 1; i < output_ids.length; i++)
-			if(output[i] >= output[ans]) ans = i;
-		return ans;
+		for(int i = 1; i < output.length; i++)
+			if(output[i] > output[ans]) ans = i;
 	}
-	public void fback_propagate(boolean incentive){
-		float[] corrections = new float[output_ids.length];
+	
+	public void backPropagate(boolean incentive){
+		float[] corrections = new float[outputIds.length];
 		
 		if(incentive){
 			for(int j = 0; j < corrections.length; j++)
@@ -74,39 +65,98 @@ public class AI{
 			corrections[ans] = 0.0f;
 		}
 		
-		finitiate_back_propagate(corrections);
+		backPropagation(corrections);
 		
 		for(int j = 0; j < Ns.length; j++)
-			Ns[j].fsettle_correction(1.0f);
+			Ns[j].settleCorrection();
 	}
-	public void finitiate_back_propagate(float[] corrections){
-		for(int i = 0; i < output_ids.length; i++){
-			Ns[output_ids[i]].fready_up(true);
-			while(!Ns[output_ids[i]].fready_up(false)[0]);
+	
+	public void backPropagation(float[] corrections){
+		for(int i = 0; i < outputIds.length; i++){
+			Ns[outputIds[i]].checkActive();
 			
-			Ns[output_ids[i]].fback_propagate(2*(Ns[output_ids[i]].fget_value() - corrections[i]));
+			while(!Ns[outputIds[i]].isReady());
+			
+			Ns[outputIds[i]].backPropagate(2*(Ns[outputIds[i]].getValue(false) - corrections[i]));
 			
 			for(int j = 0; j < Ns.length; j++)
-				Ns[j].freset_ready();
+				Ns[j].reset();
 		}
 	}
-	public void frecursive_layer(int from, int to){
-		for(int i:layers[to])
-			for(int j:layers[from])
-				Ns[i].frecursive_connection_to(Ns[j]);
+	
+	public void setInputIds(int[] ids){
+		for(int i:ids) if(i > Ns.length) return;
+		inputIds = ids.clone();
+		
+		for(int i:inputIds)
+			Ns[i].removeAllConnections();
 	}
-	/*public void add_layer(int n){
-		int[][] temp = new int[layers.length+1][];
-		for(int i = 0; i < layers.length; i++)
-			temp[i] = layers[i];
-		temp[layers.length] = new int[n];
-	}*/
+	
+	public void setOutputIds(int[] ids){
+		for(int i:ids) if(i > Ns.length) return;
+		outputIds = ids.clone();
+		
+		output = new float[outputIds.length];
+		for(int i = 0; i < output.length; i++)
+			output[i] = 0.0f;
+		ans = 0;
+	}
+	
+	public void addConnection(int receiverId, int targetId){
+		Ns[receiverId].addConnectionTo(Ns[targetId]);
+	}
+	
+	public void addRecursiveConnection(int receiverId, int targetId){
+		Ns[receiverId].addRecursiveConnectionTo(Ns[targetId]);
+	}
+	
+	public void removeConnection(int receiverId, int targetId){
+		Ns[receiverId].removeConnectionTo(targetId);
+	}
+	
+	public void add(int qtt){
+		Neuron[] temp = new Neuron[Ns.length+qtt];
+		
+		for(int i = 0; i < Ns.length; i++)
+			temp[i] = Ns[i];
+		for(int i = Ns.length; i < temp.length; i++)
+			temp[i] = new Neuron(i);
+		
+		Ns = temp;
+	}
+	
+	public void add(){
+		Neuron[] temp = new Neuron[Ns.length+1];
+		
+		for(int i = 0; i < Ns.length; i++)
+			temp[i] = Ns[i];
+		temp[Ns.length] = new Neuron(Ns.length);
+		
+		Ns = temp;
+	}
+	
+	public void remove(int id){
+		if(!(id < Ns.length)) return;
+		
+		Neuron[] temp = new Neuron[Ns.length-1];
+		
+		int k = 0;
+		for(int i = 0; i < Ns.length; i++){
+			if(id == i) continue;
+			temp[k++] = Ns[i];
+		}
+		
+		Ns = temp;
+	}
 	
 	/*UTIL*/
-	public String fget_data(){
+	public String getData(){
+		if(Ns.length == 0) return "Neural Network empty\n";
+		
 		String data = new String("");
 		for(Neuron n:Ns)
-			data += n.fget_data();
+			data += n.getData();
+		
 		return data;
 	}
 }

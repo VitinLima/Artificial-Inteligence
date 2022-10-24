@@ -1,81 +1,65 @@
-package ai;
 
 import javax.swing.*;
 import java.awt.*;
 
 public class Dentrite{
-	private boolean flag;
-	private boolean check;
-	private boolean recursive;
+	private boolean isActivating;
+	private boolean isChecked;
 	
-	private Neuron owner;
-	private float multiplier;
-	private float correction;
+	protected float multiplier;
+	protected float correction;
 	
-	private Neuron neuron;
+	protected Neuron neuron;
 	
-	public Dentrite(Neuron new_neuron, boolean is_recursive, Neuron new_owner){
-		neuron = new_neuron;
-		recursive = is_recursive;
-		owner = new_owner;
+	public Dentrite(Neuron neuron){
+		this.neuron = neuron;
+		isChecked = false;
 		
-		flag = false;
-		check = true;
+		isActivating = false;
 		
-		multiplier = 0.0f;
+		multiplier = (float)Math.random()*2.0f - 1.0f;
 		correction = 0.0f;
 	}
-	public boolean fready_up(){
-		if(check){
-			check = false;
-			if(recursive) return true;
-			boolean[] temp = neuron.fready_up(true);
-			flag = temp[1];
-			return temp[0];
-		}
+	
+	public boolean isReady(){
+		if(isChecked)
+			return neuron.isReady();
 		
-		if(!flag) return true;
-		return neuron.fready_up(false)[0];
+		isChecked = true;
+		isActivating = neuron.checkActive();
+		return false;
 	}
-	public float fstart(){
-		if(recursive) return neuron.fget_recursive()*multiplier;
-		if(flag) return neuron.fstart()*multiplier;
-		return neuron.fget_value()*multiplier;
+	
+	public float getValue(){
+		if(isActivating) return neuron.getValue(true)*multiplier;
+		return neuron.getValue(false)*multiplier;
 	}
-	public void freset(){
-		flag = false;
-		check = true;
+	
+	public void backPropagate(float incentive){
+		correction += incentive*neuron.getValue(false);
+		if(isActivating)
+			neuron.backPropagate(incentive*multiplier);
 	}
-	public void fback_propagate(float incentive){
-		if(recursive)
-			correction += incentive*neuron.fget_recursive();
-		else
-			correction += incentive*neuron.fget_value();
-		if(flag) neuron.fback_propagate(incentive*multiplier);
-	}
-	public void fsettle_correction(float divider){
-		multiplier -= correction/divider;
+	
+	public void settleCorrection(){
+		multiplier -= correction;
 		correction = 0.0f;
+	}
+	
+	public void reset(){
+		isActivating = false;
+		isChecked = false;
 	}
 	
 	/*UTIL*/
 	
-	public void fset_random(){
-		multiplier = (float)Math.random()*2.0f - 1.0f;;
+	public int getId(){
+		return neuron.getId();
 	}
-	public float fget_multiplier(){
-		return multiplier;
-	}
-	public int fget_id(){
-		return neuron.fget_id();
-	}
-	public boolean fis_flag(){
-		return flag;
-	}
-	public String fget_data(){
-		if(recursive)
-			return "is connected to neuron " + neuron.fget_id() + " with weight of " + multiplier + " (recursive)\n";
+	public String getData(){
+		if(isActivating)
+			return "is activating neuron " + neuron.getId() + " with weight of " + multiplier + '\n';
 		else
-			return "is connected to neuron " + neuron.fget_id() + " with weight of " + multiplier + '\n';
+			return "is reading neuron " + neuron.getId() + " with weight of " + multiplier + '\n';
 	}
 }
