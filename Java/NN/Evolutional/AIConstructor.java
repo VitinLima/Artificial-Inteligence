@@ -25,7 +25,7 @@ public class AIConstructor extends AI{
 		for(int i = 1; i < this.ids.length; i++)
 			for(int j:this.ids[i])
 				for(int k:this.ids[i-1])
-					addConnection(j, k);
+					super.addConnection(j, k);
 		
 		setInputIds(this.ids[0]);
 		setOutputIds(this.ids[this.ids.length-1]);
@@ -34,13 +34,13 @@ public class AIConstructor extends AI{
 	public void addLayerRecursiveConnection(int receiverLayer, int targetLayer){
 		for(int i:ids[receiverLayer])
 			for(int j:ids[targetLayer])
-				addRecursiveConnection(i,j);
+				super.addRecursiveConnection(i,j);
 	}
 	
 	public void addLayerConnection(int receiverLayer, int targetLayer){
 		for(int i:ids[receiverLayer])
 			for(int j:ids[targetLayer])
-				addConnection(i,j);
+				super.addConnection(i,j);
 	}
 	
 	public void addLayer(int size){
@@ -51,7 +51,7 @@ public class AIConstructor extends AI{
 		temp[ids.length] = new int[size];
 		
 		int k = 0;
-		for(int i:ids)
+		for(int[] i:ids)
 			k += i.length;
 		k += singleIds.length;
 		for(int i = 0; i < temp[ids.length].length; i++)
@@ -67,7 +67,7 @@ public class AIConstructor extends AI{
 			temp[i] = ids[i];
 		
 		int k = 0;
-		for(int i:ids)
+		for(int[] i:ids)
 			k += i.length;
 		k += singleIds.length;
 		for(int i = ids.length; i < temp.length; i++){
@@ -80,7 +80,24 @@ public class AIConstructor extends AI{
 		
 		for(int i = ids.length+1; i < temp.length; i++){
 			for(int j = 0; j < temp[i].length; j++)
-				addRecursiveConnection(temp[i][j],temp[i-1][j]);
+				super.addRecursiveConnection(temp[i][j],temp[i-1][j]);
+		}
+		ids = temp;
+	}
+	
+	public void removeLayer(int id){
+		if(!(id < ids.length)) return;
+		
+		for(int i = 0; i < ids[id].length; i++){
+			remove(ids[id][0]);
+			i--;
+		}
+		
+		int[][] temp = new int[ids.length-1][];
+		int n = 0;
+		for(int i = 0; i < ids.length; i++){
+			if(i == id) continue;
+			temp[n++] = ids[i];
 		}
 		ids = temp;
 	}
@@ -90,7 +107,7 @@ public class AIConstructor extends AI{
 		
 		for(int i:ids[receiverLayer])
 			for(int j:ids[targetLayer])
-				removeConnection(i, j);
+				super.removeConnection(i, j);
 	}
 	
 	public String getLayersData(){
@@ -110,7 +127,7 @@ public class AIConstructor extends AI{
 		for(int i = 0; i < singleIds.length; i++)
 			temp[i] = singleIds[i];
 		int k = 0;
-		for(int i:ids)
+		for(int[] i:ids)
 			k += i.length;
 		k += singleIds.length;
 		for(int i = singleIds.length; i < temp.length; i++)
@@ -125,7 +142,7 @@ public class AIConstructor extends AI{
 		for(int i = 0; i < singleIds.length; i++)
 			temp[i] = singleIds[i];
 		int k = 0;
-		for(int i:ids)
+		for(int[] i:ids)
 			k += i.length;
 		k += singleIds.length;
 		for(int i = singleIds.length; i < temp.length; i++)
@@ -135,16 +152,23 @@ public class AIConstructor extends AI{
 	
 	@Override
 	public void remove(int id){
+		int m = 0;
+		for(int[] i:ids)
+			m += i.length;
+		m += singleIds.length;
+		if(!(id < m)) return;
+		
 		super.remove(id);
-		exist:{
-			existInLayers:{
-				for(int[] i:ids)
-					for(int j:i)
-						if(j == id) break existInLayers;
-				for(int i:singleIds)
-					if(i == id) break exist;
-				return;
+		
+		boolean existInLayers = true;
+		for(int i:singleIds){
+			if(i == id){
+				existInLayers = false;
+				break;
 			}
+		}
+		
+		if(existInLayers){
 			for(int i = 0; i < ids.length; i++){
 				for(int j = 0; j < ids[i].length; j++){
 					if(ids[i][j] == id){
@@ -158,13 +182,19 @@ public class AIConstructor extends AI{
 					}
 				}
 			}
+		} else{
+			int[] temp = new int[singleIds.length - 1];
+			int n = 0;
+			for(int i = 0; i < singleIds.length; i++){
+				if(singleIds[i] == id) continue;
+				temp[n++] = singleIds[i];
+			}
 		}
-		int[] temp = new int[singleIds.length - 1];
-		int n = 0;
-		for(int i = 0; i < singleIds.length; i++){
-			if(singleIds[i] == id) continue;
-			temp[n++] = singleIds[i];
-		}
-		singleIds = temp;
+		
+		for(int i = 0; i < ids.length; i++)
+			for(int j = 0; j < ids[i].length; j++)
+				if(ids[i][j] > id) ids[i][j]--;
+		for(int i = 0; i < singleIds.length; i++)
+			if(singleIds[i] > id) singleIds[i]--;
 	}
 }

@@ -45,8 +45,10 @@ public class AI{
 			while(!Ns[outputIds[i]].isReady());
 			
 			output[i] = Ns[outputIds[i]].getValue(true);
-			for(int j = 0; j < Ns.length; j++)
-				Ns[j].reset();
+			for(int j = 0; j < Ns.length; j++){
+				if(Ns[j] != null)
+					Ns[j].reset();
+			}
 		}
 		
 		ans = 0;
@@ -67,8 +69,10 @@ public class AI{
 		
 		backPropagation(corrections);
 		
-		for(int j = 0; j < Ns.length; j++)
-			Ns[j].settleCorrection();
+		for(int j = 0; j < Ns.length; j++){
+			if(Ns[j] != null)
+				Ns[j].settleCorrection();
+		}
 	}
 	
 	public void backPropagation(float[] corrections){
@@ -79,8 +83,10 @@ public class AI{
 			
 			Ns[outputIds[i]].backPropagate(2*(Ns[outputIds[i]].getValue(false) - corrections[i]));
 			
-			for(int j = 0; j < Ns.length; j++)
-				Ns[j].reset();
+			for(int j = 0; j < Ns.length; j++){
+				if(Ns[j] != null)
+					Ns[j].reset();
+			}
 		}
 	}
 	
@@ -88,8 +94,10 @@ public class AI{
 		for(int i:ids) if(i > Ns.length) return;
 		inputIds = ids.clone();
 		
-		for(int i:inputIds)
-			Ns[i].removeAllConnections();
+		for(int i:inputIds){
+			if(Ns[i] != null)
+				Ns[i].removeAllConnections();
+		}
 	}
 	
 	public void setOutputIds(int[] ids){
@@ -103,15 +111,18 @@ public class AI{
 	}
 	
 	public void addConnection(int receiverId, int targetId){
-		Ns[receiverId].addConnectionTo(Ns[targetId]);
+		if(Ns[receiverId] != null)
+			Ns[receiverId].addConnectionTo(Ns[targetId]);
 	}
 	
 	public void addRecursiveConnection(int receiverId, int targetId){
-		Ns[receiverId].addRecursiveConnectionTo(Ns[targetId]);
+		if(Ns[receiverId] != null)
+			Ns[receiverId].addRecursiveConnectionTo(Ns[targetId]);
 	}
 	
 	public void removeConnection(int receiverId, int targetId){
-		Ns[receiverId].removeConnectionTo(targetId);
+		if(Ns[receiverId] != null)
+			Ns[receiverId].removeConnectionTo(targetId);
 	}
 	
 	public void add(int qtt){
@@ -138,10 +149,20 @@ public class AI{
 	public void remove(int id){
 		if(!(id < Ns.length)) return;
 		
-		for(int i = 0; i < Ns.length; i++)
-			Ns[i].removeConnectionTo(id);
+		for(int i = 0; i < Ns.length; i++){
+			if(Ns[i] != null)
+				Ns[i].removeConnectionTo(id);
+		}
 		
-		Ns[id] = null;
+		Neuron[] temp = new Neuron[Ns.length-1];
+		int n = 0;
+		for(int i = 0; i < Ns.length; i++){
+			if(i == id) continue;
+			temp[n++] = Ns[i];
+		}
+		Ns = temp;
+		for(int i = 0; i < Ns.length; i++)
+			Ns[i].setId(i);
 	}
 	
 	/*UTIL*/
@@ -149,14 +170,18 @@ public class AI{
 		if(Ns.length == 0) return "Neural Network empty\n";
 		
 		String data = new String("");
-		for(Neuron n:Ns)
-			data += n.getData();
+		for(Neuron n:Ns){
+			if(n != null)
+				data += n.getData();
+		}
 		
 		return data;
 	}
 	public void randomize(){
-		for(int i = 0; i < Ns.length; i++)
-			Ns[i].randomize();
+		for(int i = 0; i < Ns.length; i++){
+			if(Ns[i] != null)
+				Ns[i].randomize();
+		}
 	}
 	public AI copy(){
 		return new AI(Ns, outputIds, inputIds, output, ans);
@@ -167,9 +192,15 @@ public class AI{
 		this.output = output.clone();
 		this.ans = ans;
 		this.Ns = new Neuron[Ns.length];
-		for(int i = 0; i < Ns.length; i++)
-			this.Ns[i] = Ns[i].copy();
-		for(int i = 0; i < this.Ns.length; i++)
-			this.Ns[i].updateDentrites(this.Ns);
+		for(int i = 0; i < Ns.length; i++){
+			if(Ns[i] != null)
+				this.Ns[i] = Ns[i].copy();
+			else
+				this.Ns[i] = null;
+		}
+		for(int i = 0; i < this.Ns.length; i++){
+			if(this.Ns[i] != null);
+				this.Ns[i].updateDentrites(this.Ns);
+		}
 	}
 }

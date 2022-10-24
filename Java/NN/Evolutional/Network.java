@@ -25,7 +25,7 @@ public class Network{
 		return eff.length - 1;
 	}
 	
-	public void select(){
+	public void runSelection(){
 		if(ais.length < 2) return;
 		int[] origIds = new int[ais.length/2];
 		int[] subIds = new int[ais.length/2];

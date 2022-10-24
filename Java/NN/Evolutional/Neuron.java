@@ -78,6 +78,7 @@ public class Neuron{
 	}
 	
 	public void addConnectionTo(Neuron neuron){
+		if(neuron == null) return;
 		Dentrite[] temp = new Dentrite[Ds.length+1];
 		
 		for(int i = 0; i < Ds.length; i++)
@@ -88,6 +89,7 @@ public class Neuron{
 	}
 	
 	public void addRecursiveConnectionTo(Neuron neuron){
+		if(neuron == null) return;
 		Dentrite[] temp = new Dentrite[Ds.length+1];
 		
 		for(int i = 0; i < Ds.length; i++)
@@ -133,6 +135,9 @@ public class Neuron{
 	
 	/*UTIL*/
 	
+	public void setId(int id){
+		this.id = id;
+	}
 	public int getId(){
 		return id;
 	}
