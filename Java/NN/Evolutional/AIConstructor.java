@@ -1,11 +1,14 @@
+package ai;
+
 public class AIConstructor extends AI{
-	private int[][] ids;
+	private int[][] ids = new int[0][0];
+	private int[] singleIds = new int[0];
 	
 	public AIConstructor(int[] ids){
 		super();
 		
 		for(int i:ids)
-			add(i);
+			super.add(i);
 		
 		this.ids = new int[ids.length][];
 		
@@ -47,11 +50,14 @@ public class AIConstructor extends AI{
 		
 		temp[ids.length] = new int[size];
 		
-		int k = ids[ids.length-1][ids[ids.length-1].length-1];
+		int k = 0;
+		for(int i:ids)
+			k += i.length;
+		k += singleIds.length;
 		for(int i = 0; i < temp[ids.length].length; i++)
-			temp[ids.length][i] = ++k;
+			temp[ids.length][i] = k++;
 		
-		add(size);
+		super.add(size);
 		ids = temp;
 	}
 	
@@ -60,14 +66,17 @@ public class AIConstructor extends AI{
 		for(int i = 0; i < ids.length; i++)
 			temp[i] = ids[i];
 		
-		int k = ids[ids.length-1][ids[ids.length-1].length-1];
+		int k = 0;
+		for(int i:ids)
+			k += i.length;
+		k += singleIds.length;
 		for(int i = ids.length; i < temp.length; i++){
 			temp[i] = new int[size];
 			for(int j = 0; j < temp[i].length; j++)
-				temp[i][j] = ++k;
+				temp[i][j] = k++;
 		}
 		
-		add(qtt*size);
+		super.add(qtt*size);
 		
 		for(int i = ids.length+1; i < temp.length; i++){
 			for(int j = 0; j < temp[i].length; j++)
@@ -92,5 +101,70 @@ public class AIConstructor extends AI{
 			data += '\n';
 		}
 		return data;
+	}
+	
+	@Override
+	public void add(int qtt){
+		super.add(qtt);
+		int[] temp = new int[singleIds.length + qtt];
+		for(int i = 0; i < singleIds.length; i++)
+			temp[i] = singleIds[i];
+		int k = 0;
+		for(int i:ids)
+			k += i.length;
+		k += singleIds.length;
+		for(int i = singleIds.length; i < temp.length; i++)
+			temp[i] = k++;
+		singleIds = temp;
+	}
+	
+	@Override
+	public void add(){
+		super.add();
+		int[] temp = new int[singleIds.length + 1];
+		for(int i = 0; i < singleIds.length; i++)
+			temp[i] = singleIds[i];
+		int k = 0;
+		for(int i:ids)
+			k += i.length;
+		k += singleIds.length;
+		for(int i = singleIds.length; i < temp.length; i++)
+			temp[i] = k++;
+		singleIds = temp;
+	}
+	
+	@Override
+	public void remove(int id){
+		super.remove(id);
+		exist:{
+			existInLayers:{
+				for(int[] i:ids)
+					for(int j:i)
+						if(j == id) break existInLayers;
+				for(int i:singleIds)
+					if(i == id) break exist;
+				return;
+			}
+			for(int i = 0; i < ids.length; i++){
+				for(int j = 0; j < ids[i].length; j++){
+					if(ids[i][j] == id){
+						int[] temp = new int[ids[i].length - 1];
+						int n = 0;
+						for(int k = 0; k < ids[i].length; k++){
+							if(ids[i][k] == id) continue;
+							temp[n++] = ids[i][k];
+						}
+						ids[i] = temp;
+					}
+				}
+			}
+		}
+		int[] temp = new int[singleIds.length - 1];
+		int n = 0;
+		for(int i = 0; i < singleIds.length; i++){
+			if(singleIds[i] == id) continue;
+			temp[n++] = singleIds[i];
+		}
+		singleIds = temp;
 	}
 }

@@ -1,3 +1,4 @@
+package ai;
 
 import javax.swing.*;
 import java.awt.*;

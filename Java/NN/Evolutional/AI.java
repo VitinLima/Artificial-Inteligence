@@ -1,3 +1,4 @@
+package ai;
 
 import javax.swing.*;
 import java.awt.*;
@@ -58,12 +59,10 @@ public class AI{
 		
 		if(incentive){
 			for(int j = 0; j < corrections.length; j++)
-				corrections[j] = 0.0f;
-			corrections[ans] = 1.0f;
+				corrections[j] = 1.0f - (1.0f - Ns[outputIds[j]].getValue(false))*Ns[outputIds[j]].getValue(false);
 		} else{
 			for(int j = 0; j < corrections.length; j++)
 				corrections[j] = 1.0f;
-			corrections[ans] = 0.0f;
 		}
 		
 		backPropagation(corrections);
@@ -139,15 +138,10 @@ public class AI{
 	public void remove(int id){
 		if(!(id < Ns.length)) return;
 		
-		Neuron[] temp = new Neuron[Ns.length-1];
+		for(int i = 0; i < Ns.length; i++)
+			Ns[i].removeConnectionTo(id);
 		
-		int k = 0;
-		for(int i = 0; i < Ns.length; i++){
-			if(id == i) continue;
-			temp[k++] = Ns[i];
-		}
-		
-		Ns = temp;
+		Ns[id] = null;
 	}
 	
 	/*UTIL*/

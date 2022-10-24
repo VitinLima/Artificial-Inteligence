@@ -1,21 +1,32 @@
-public class EvolutionalAI{
+package ai;
+
+public class Network{
 	private AI[] ais;
 	private int[] eff;
 	
-	public EvolutionalAI(){
+	public Network(){
 		ais = new AI[0];
 		eff = new int[0];
 	}
 	
-	public void add(AI ai){
-		AI[] temp = new AI[ais.length-1];
+	public int add(AI ai){
+		AI[] temp = new AI[ais.length+1];
 		for(int i = 0; i < ais.length; i++)
 			temp[i] = ais[i];
 		temp[ais.length] = ai;
 		ais = temp;
+		
+		int[] tempEff = new int[eff.length+1];
+		for(int i = 0; i < eff.length; i++)
+			tempEff[i] = eff[i];
+		tempEff[eff.length] = 0;
+		eff = tempEff;
+		
+		return eff.length - 1;
 	}
 	
-	public void select(int id){
+	public void select(){
+		if(ais.length < 2) return;
 		int[] origIds = new int[ais.length/2];
 		int[] subIds = new int[ais.length/2];
 		organize(origIds, subIds);
@@ -27,9 +38,10 @@ public class EvolutionalAI{
 	
 	private void organize(int[] origIds, int[] subIds){
 		int[] temp = new int[ais.length];
+		System.out.println(ais.length);
 		for(int i = 0; i < ais.length; i++)
 			temp[i] = i;
-		for(int i = 0; i < ais.length; i++){
+		for(int i = 0; i < ais.length-1; i++){
 			if(i == -1) continue;
 			if(eff[temp[i]] < eff[temp[i+1]]){
 				temp[i] += temp[i+1];
@@ -51,5 +63,26 @@ public class EvolutionalAI{
 		for(m = m; m < subIds.length; m++)
 			subIds[m] = temp[k++];
 		if(m + n < temp.length) subIds[--m] = temp[k];
+		
+		for(int i = 0; i < eff.length; i++)
+			eff[i] = 0;
+	}
+	
+	public void addEff(boolean signal, int id){
+		
+		if(signal) eff[id]++;
+		else eff[id]--;
+	}
+	
+	public void setInput(float[] input, int id){
+		ais[id].setInput(input);
+	}
+	
+	public float[] getOutput(int id){
+		return ais[id].getOutput();
+	}
+	
+	public int getAns(int id){
+		return ais[id].getAns();
 	}
 }
