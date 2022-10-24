@@ -1,0 +1,71 @@
+package entity;
+
+import frame.UserFrame;
+import javax.swing.*;
+import java.awt.*;
+
+public class HiderPlayer extends Player{
+	private boolean beeingSeen;
+	
+	public HiderPlayer(){
+		super("Hider");
+	}
+	
+	@Override
+	public void firePreStep(){
+		beeingSeen = false;
+	}
+	
+	@Override
+	public void firePosStep(){
+		Graphics g = super.getFrame().getGraphics();
+		
+		g.setColor(Color.black);
+		for(int i = 0; i < 200; i++)
+			g.drawLine(i,0,i,200);
+		
+		int n = 0;
+		for(Entity ett:super.getRelativeView()){
+			if(ett instanceof SeekerNPC || ett instanceof SeekerPlayer){
+				beeingSeen = true;
+				g.setColor(Color.red);
+				g.fillOval(95 + (int)(40.0*Math.cos(super.getAngles()[n])), 95 + (int)(40.0*Math.sin(super.getAngles()[n])), 10, 10);
+			} else if(ett instanceof HiderNPC || ett instanceof HiderPlayer){
+				g.setColor(Color.blue);
+				g.fillOval(95 + (int)(40.0*Math.cos(super.getAngles()[n])), 95 + (int)(40.0*Math.sin(super.getAngles()[n])), 10, 10);
+			} else if(ett instanceof Wall){
+				g.setColor(Color.white);
+				g.fillOval(95 + (int)(40.0*Math.cos(super.getAngles()[n])), 95 + (int)(40.0*Math.sin(super.getAngles()[n])), 10, 10);
+			} else if(ett instanceof Border){
+				g.setColor(Color.yellow);
+				g.fillOval(95 + (int)(40.0*Math.cos(super.getAngles()[n])), 95 + (int)(40.0*Math.sin(super.getAngles()[n])), 10, 10);
+			}
+			n++;
+		}
+		
+		if(beeingSeen)
+			g.setColor(Color.red);
+		else
+			g.setColor(Color.white);
+		g.drawOval(94,94,12,12);
+		
+		g.setColor(Color.blue);
+		g.fillOval(95,95,10,10);
+	}
+	
+	@Override
+	public String getInfo(){
+		return "Hider Player";
+	}
+	
+	@Override
+	public void redraw(float lastX, float lastY, float x, float y, float size, JPanel panel){
+		Graphics g = panel.getGraphics();
+		
+		g.setColor(Color.black);
+		g.fillOval((int)lastX-(int)size/2,(int)lastY-(int)size/2,(int)size,(int)size);
+		
+		g.setColor(Color.blue);
+		g.fillOval((int)x-(int)size/2,(int)y-(int)size/2,(int)size,(int)size);
+	}
+}
