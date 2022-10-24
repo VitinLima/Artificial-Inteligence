@@ -71,8 +71,6 @@ class NeuralNetworkCanvas(tk.Canvas):
                 for d in n.dentrites:
                     if d.on_canvas.count(closest)>0:
                         self.selected = d
-                        self.selected.dx = event.x-d.x
-                        self.selected.dy = event.y-d.y
                         self.selected.setLayer(1)
                         return
         for n in self.neurons:
@@ -85,8 +83,6 @@ class NeuralNetworkCanvas(tk.Canvas):
             for d in n.dentrites:
                 if d.on_canvas.count(closest)>0:
                     self.selected = d
-                    self.selected.dx = event.x-d.x
-                    self.selected.dy = event.y-d.y
                     self.selected.setLayer(1)
                     return
         # for g in self.neuralGroups:
@@ -125,7 +121,8 @@ class NeuralNetworkCanvas(tk.Canvas):
     def buttonMotionCallback(self, event):
         if self.selected==[]:
             return
-        self.selected.coords(self, event.x, event.y)
+        elif self.selected.__class__ is not DrawableConnection:
+            self.selected.coords(self, event.x, event.y)
     
     def updateNetwork(self):
         self.neurons = []
@@ -273,8 +270,11 @@ class DrawableNeuralGroup:
         self.state = 'toKill'
         for neuron in self.neurons:
             neuron.network = self.network
+            self.network.neurons.append(neuron)
             neuron.neuron.network = self.network.network
+            self.network.network.neurons.append(neuron.neuron)
         self.neuralGroup.ungroup()
+        self.toDraw = True
     
     def kill(self, childSupport=True):
         for neuron in self.neurons:
@@ -316,7 +316,6 @@ class DrawableNeuralGroup:
             for neuron in self.neurons.copy():
                 neuron.drawSelf(canvas)
             self.state='dead'
-            del self
             return
         
         p1 = (self.x,self.y)
@@ -422,6 +421,8 @@ class DrawableNeuron:
         
         for i in range(len(self.dentrites)):
             self.dentrites[i].drawSelf(canvas)
+        for i in range(len(self.axons)):
+            self.axons[i].drawSelf(canvas)
         
         points = (
                 (self.x-self.radius*1.2,self.y-self.radius*1.2),
@@ -580,7 +581,7 @@ class DrawableConnection:
         if self.connection.weight > 0:
             color_hex = rgb_to_hex((0,Sigmoid(self.connection.weight),0))
         else:
-            color_hex = rgb_to_hex((Sigmoid(self.connection.weight),0,0))
+            color_hex = rgb_to_hex((Sigmoid(-self.connection.weight),0,0))
         points = [x0-w/2,y0-w/2,
                   x0+w/2,y0+w/2,
                     meanX,meanY]
@@ -638,39 +639,48 @@ class OptionsPanel(tk.Frame):
             self.neuralGroupOptions.canvas = self.canvas
             self.connectionOptions.canvas = self.canvas
             self.otherOptions.canvas = self.canvas
+    
+    def setCurrentPanel(self, panel=[]):
+        if panel==[]:
+            self.neuronOptions.pack_forget()
+            self.neuralGroupOptions.pack_forget()
+            self.connectionOptions.pack_forget()
+            self.otherOptions.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+            self.currentPanel = self.otherOptions
+        elif panel==self.NeuronOptions:
+            self.neuronOptions.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+            self.currentPanel = self.neuronOptions
+            self.neuralGroupOptions.pack_forget()
+            self.connectionOptions.pack_forget()
+            self.otherOptions.pack_forget()
+        elif panel==self.NeuralGroupOptions:
+            self.neuronOptions.pack_forget()
+            self.neuralGroupOptions.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+            self.currentPanel = self.neuralGroupOptions
+            self.connectionOptions.pack_forget()
+            self.otherOptions.pack_forget()
+        elif panel==self.ConnectionOptions:
+            self.neuronOptions.pack_forget()
+            self.neuralGroupOptions.pack_forget()
+            self.connectionOptions.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+            self.currentPanel = self.connectionOptions
+            self.otherOptions.pack_forget()
+        self.currentPanel.select()
         
     def pressedButtonCallback(self, event):
+        self.event = event
+        self.selected = self.canvas.selected
         if self.currentPanel.waitingForInput==True:
-            self.currentPanel.select(self.canvas.selected, event)
+            self.currentPanel.select()
         else:
-            if self.canvas.selected.__class__==DrawableNeuron:
-                self.neuronOptions.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-                self.currentPanel = self.neuronOptions
-                self.neuralGroupOptions.pack_forget()
-                self.connectionOptions.pack_forget()
-                self.otherOptions.pack_forget()
-                self.neuronOptions.select(self.canvas.selected, event)
-            elif self.canvas.selected.__class__==DrawableNeuralGroup:
-                self.neuronOptions.pack_forget()
-                self.neuralGroupOptions.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-                self.currentPanel = self.neuralGroupOptions
-                self.connectionOptions.pack_forget()
-                self.otherOptions.pack_forget()
-                self.neuralGroupOptions.select(self.canvas.selected, event)
-            elif self.canvas.selected.__class__==DrawableConnection:
-                self.neuronOptions.pack_forget()
-                self.neuralGroupOptions.pack_forget()
-                self.connectionOptions.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-                self.currentPanel = self.connectionOptions
-                self.otherOptions.pack_forget()
-                self.connectionOptions.select(self.canvas.selected, event)
+            if self.selected.__class__==DrawableNeuralGroup:
+                self.setCurrentPanel(panel=self.NeuralGroupOptions)
+            elif self.selected.__class__==DrawableNeuron:
+                self.setCurrentPanel(panel=self.NeuronOptions)
+            elif self.selected.__class__==DrawableConnection:
+                self.setCurrentPanel(panel=self.ConnectionOptions)
             else:
-                self.neuronOptions.pack_forget()
-                self.neuralGroupOptions.pack_forget()
-                self.connectionOptions.pack_forget()
-                self.otherOptions.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-                self.currentPanel = self.otherOptions
-                self.otherOptions.select(self.canvas.selected, event)
+                self.setCurrentPanel()
     
     class NeuronOptions(tk.Frame):
         def __init__(self, master=None, cnf={}, **kw):
@@ -678,48 +688,67 @@ class OptionsPanel(tk.Frame):
             
             self.titleLb = tk.Label(master=self, text='Neuron', fg='white', bg='black')
             self.titleLb.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
-            bt = tk.Button(master=self, text='name', command=self.nameBtCb, fg='white', bg='black')
-            bt.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+            fr = tk.Frame(master=self)
+            fr.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+            bt = tk.Button(master=fr, text='name', command=self.nameBtCb, fg='white', bg='black')
+            bt.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+            self.nameTb = tk.Text(master=fr, state='normal', fg='white', bg='black', width=20,height=1)
+            self.nameTb.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
             bt = tk.Button(master=self, text='connect with', command=self.connectWithBtCb, fg='white', bg='black')
             bt.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
-            bt = tk.Button(master=self, text='activation', command=self.activationBtCb, fg='white', bg='black')
-            bt.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
-            bt = tk.Button(master=self, text='bias', command=self.biasBtCb, fg='white', bg='black')
-            bt.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+            fr = tk.Frame(master=self)
+            fr.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+            bt = tk.Button(master=fr, text='activation', command=self.activationBtCb, fg='white', bg='black')
+            bt.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+            self.activationTb = tk.Text(master=fr, state='normal', fg='white', bg='black', width=5,height=1)
+            self.activationTb.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+            fr = tk.Frame(master=self)
+            fr.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+            bt = tk.Button(master=fr, text='bias', command=self.biasBtCb, fg='white', bg='black')
+            bt.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+            self.biasTb = tk.Text(master=fr, state='normal', fg='white', bg='black', width=5,height=1)
+            self.biasTb.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
             bt = tk.Button(master=self, text='kill', command=self.killBtCb, fg='white', bg='black')
             bt.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
             lb = tk.Label(master=self, bg='black')
             lb.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
             
             self.waitingForInput = False
-            self.selected=[]
         
-        def select(self, selection, event):
+        def select(self):
             if self.waitingForInput==True:
                 self.waitingForInput = False
-                self.selectionFunction(selection, event)
-            else:
-                self.selected = selection
+                self.selectionFunction()
+            elif self.master.selected is not []:
+                self.nameTb.delete('1.0', 'end')
+                self.nameTb.insert('end', self.master.selected.name)
+                self.activationTb.delete('1.0', 'end')
+                self.activationTb.insert('end', str(self.master.selected.neuron.activation))
+                self.biasTb.delete('1.0', 'end')
+                self.biasTb.insert('end', str(self.master.selected.neuron.bias))
         
-        def selectionFunction(self, selection, event):
-            DrawableConnection(self.selected, selection)
+        def selectionFunction(self):
+            DrawableConnection(self.selection, self.master.selected)
+            self.master.selected = self.selection
         
         def nameBtCb(self):
-            pass
+            self.master.selected.name = self.nameTb.get('1.0', 'end')
         
         def connectWithBtCb(self):
             self.waitingForInput = True
+            self.selection = self.master.selected
         
         def activationBtCb(self):
-            pass
+            self.master.selected.neuron.activation = float(self.activationTb.get('1.0', 'end'))
+            self.master.selected.toDraw = True
         
         def biasBtCb(self):
-            pass
+            self.master.selected.neuron.bias = float(self.biasTb.get('1.0', 'end'))
+            self.master.selected.toDraw = True
         
         def killBtCb(self):
-            self.selected.kill()
-            self.master.neuronOptions.pack_forget()
-            self.master.otherOptions.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+            self.master.selected.kill()
+            self.master.setCurrentPanel()
     
     class NeuralGroupOptions(tk.Frame):
         def __init__(self, master=None, cnf={}, **kw):
@@ -727,8 +756,12 @@ class OptionsPanel(tk.Frame):
             
             self.titleLb = tk.Label(master=self, text='Neural Group', fg='white', bg='black')
             self.titleLb.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
-            bt = tk.Button(master=self, text='name', command=self.nameBtCb, fg='white', bg='black')
-            bt.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+            fr = tk.Frame(master=self)
+            fr.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+            bt = tk.Button(master=fr, text='name', command=self.nameBtCb, fg='white', bg='black')
+            bt.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+            self.nameTb = tk.Text(master=fr, state='normal', fg='white', bg='black', width=20,height=1)
+            self.nameTb.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
             bt = tk.Button(master=self, text='connect with', command=self.connectWithBtCb, fg='white', bg='black')
             bt.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
             bt = tk.Button(master=self, text='ungroup', command=self.ungroupBtCb, fg='white', bg='black')
@@ -739,31 +772,33 @@ class OptionsPanel(tk.Frame):
             lb.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
             
             self.waitingForInput = False
-            self.selected=[]
         
-        def select(self, selection, event):
+        def select(self):
             if self.waitingForInput==True:
                 self.waitingForInput = False
-                self.selectionFunction(selection, event)
-            else:
-                self.selected = selection
+                self.selectionFunction()
+            elif self.master.selected is not []:
+                self.nameTb.delete('1.0', 'end')
+                self.nameTb.insert('end', self.master.selected.name)
         
-        def selectionFunction(self, selection, event):
-            DrawableConnection(self.selected, selection)
+        def selectionFunction(self):
+            DrawableConnection(self.selection, self.master.selected)
+            self.master.selected = self.selection
         
         def nameBtCb(self):
-            pass
+            self.master.selected.name = self.nameTb.get('1.0', 'end')
         
         def ungroupBtCb(self):
-            pass
+            self.master.selected.ungroup()
+            self.master.setCurrentPanel()
         
         def connectWithBtCb(self):
             self.waitingForInput = True
+            self.selection = self.master.selected
         
         def killBtCb(self):
-            self.selected.kill()
-            self.master.neuralGroupOptions.pack_forget()
-            self.master.otherOptions.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+            self.master.selected.kill()
+            self.master.setCurrentPanel()
     
     class ConnectionOptions(tk.Frame):
         def __init__(self, master=None, cnf={}, **kw):
@@ -771,8 +806,18 @@ class OptionsPanel(tk.Frame):
             
             self.titleLb = tk.Label(master=self, text='Connection', fg='white', bg='black')
             self.titleLb.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
-            bt = tk.Button(master=self, text='weight', command=self.weightBtCb, fg='white', bg='black')
-            bt.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+            fr = tk.Frame(master=self)
+            fr.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+            bt = tk.Button(master=fr, text='name', command=self.nameBtCb, fg='white', bg='black')
+            bt.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+            self.nameTb = tk.Text(master=fr, state='normal', fg='white', bg='black', width=20,height=1)
+            self.nameTb.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+            fr = tk.Frame(master=self)
+            fr.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+            bt = tk.Button(master=fr, text='weight', command=self.weightBtCb, fg='white', bg='black')
+            bt.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+            self.weightTb = tk.Text(master=fr, state='normal', fg='white', bg='black', width=5,height=1)
+            self.weightTb.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
             bt = tk.Button(master=self, text='kill', command=self.killBtCb, fg='white', bg='black')
             bt.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
             lb = tk.Label(master=self, bg='black')
@@ -781,22 +826,27 @@ class OptionsPanel(tk.Frame):
             lb.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
             
             self.waitingForInput = False
-            self.selected=[]
         
-        def select(self, selection, event):
+        def select(self):
             if self.waitingForInput==True:
                 self.waitingForInput = False
-                self.selectionFunction(selection, event)
-            else:
-                self.selected = selection
+                self.selectionFunction()
+            elif self.master.selected is not []:
+                self.nameTb.delete('1.0', 'end')
+                self.nameTb.insert('end', self.master.selected.name)
+                self.weightTb.delete('1.0', 'end')
+                self.weightTb.insert('end', str(self.master.selected.connection.weight))
+        
+        def nameBtCb(self):
+            self.master.selected.name = self.nameTb.get('1.0', 'end')
         
         def weightBtCb(self):
-            pass
+            self.master.selected.connection.weight = float(self.weightTb.get('1.0', 'end'))
+            self.master.selected.toDraw = True
         
         def killBtCb(self):
-            self.selected.kill()
-            self.master.connectionOptions.pack_forget()
-            self.master.otherOptions.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+            self.master.selected.kill()
+            self.master.setCurrentPanel()
     
     class OtherOptions(tk.Frame):
         def __init__(self, master=None, cnf={}, **kw):
@@ -833,8 +883,8 @@ class OptionsPanel(tk.Frame):
             fr = tk.Frame(master=self.birth_neuralGroupPanel, bg='black')
             fr.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
             lb = tk.Label(master=fr, text='size:', fg='white', bg='black')
-            lb.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-            self.birth_neuralGroup_sizeTb = tk.Text(master=fr, state='normal', fg='white', bg='black', width=2,height=1)
+            lb.pack(side=tk.LEFT, fill=tk.Y, expand=True)
+            self.birth_neuralGroup_sizeTb = tk.Text(master=fr, state='normal', fg='white', bg='black', width=5,height=1)
             self.birth_neuralGroup_sizeTb.insert('end', '3')
             self.birth_neuralGroup_sizeTb.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
             bt = tk.Button(master=self.birth_neuralGroupPanel, text='Back', command=self.birth_neuralGroup_backBtCb, fg='white', bg='black')
@@ -842,12 +892,18 @@ class OptionsPanel(tk.Frame):
             lb = tk.Label(master=self.birth_neuralGroupPanel, bg='black')
             lb.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
             
+            self.groupTogetherPanel = tk.Frame(master=self, bg='black')
+            self.groupTogetherPanel.pack_forget()
+            lb = tk.Label(master=self.birth_neuralGroupPanel, text='Group neurons', fg='white', bg='black')
+            lb.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+            bt = tk.Button(master=self.groupTogetherPanel, text='back', command=self.groupTogether_backBtCb, fg='white', bg='black')
+            bt.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+            
             self.waitingForInput = False
-            self.selected=[]
         
-        def select(self, selection, event):
+        def select(self):
             if self.waitingForInput==True:
-                self.selectionFunction(selection, event)
+                self.selectionFunction()
         
         def birthBtCb(self):
             self.mainPanel.pack_forget()
@@ -858,20 +914,19 @@ class OptionsPanel(tk.Frame):
             self.selectionFunction = self.birth_neuronSelectionFunction
             self.waitingForInput = True
         
-        def birth_neuronSelectionFunction(self, selection, event):
-            DrawableNeuron(self.canvas, x=event.x, y=event.y)
+        def birth_neuronSelectionFunction(self):
+            DrawableNeuron(self.canvas, x=self.master.event.x, y=self.master.event.y)
         
         def birth_neuralGroupBtCb(self):
             self.mainPanel.pack_forget()
-            self.birthPanel.pack_forget()
             self.birth_neuralGroupPanel.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
             
             self.selectionFunction = self.birth_neuralGroupSelectionFunction
             self.waitingForInput = True
         
-        def birth_neuralGroupSelectionFunction(self, selection, event):
+        def birth_neuralGroupSelectionFunction(self):
             N = int(self.birth_neuralGroup_sizeTb.get('1.0','end'))
-            neuralGroup = DrawableNeuralGroup(self.canvas, x=event.x, y=event.y, height=30*N)
+            neuralGroup = DrawableNeuralGroup(self.canvas, x=self.master.event.x, y=self.master.event.y, height=30*N)
             for i in range(N):
                 DrawableNeuron(neuralGroup)
         
@@ -887,5 +942,28 @@ class OptionsPanel(tk.Frame):
             self.birth_neuralGroupPanel.pack_forget()
             self.waitingForInput = False
         
+        def backBtCb(self):
+            self.master.setCurrentPanel()
+        
         def groupTogetherBtCb(self):
-            pass
+            self.mainPanel.pack_forget()
+            self.groupTogetherPanel.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+            
+            self.currentGrouping = DrawableNeuralGroup(self.master.canvas)
+            self.selectionFunction = self.groupTogetherSelectionFunction
+            self.waitingForInput=True
+        
+        def groupTogetherSelectionFunction(self):
+            if self.master.selected.__class__ is not DrawableNeuron:
+                return
+            self.master.selected.network = self.currentGrouping
+            self.master.selected.neuron.network = self.currentGrouping.neuralGroup.network
+            self.currentGrouping.neurons.append(self.master.selected)
+            self.currentGrouping.neuralGroup.neurons.append(self.master.selected.neuron)
+            self.currentGrouping.height = 30*len(self.currentGrouping.neurons)
+            self.currentGrouping.toDraw=True
+        
+        def groupTogether_backBtCb(self):
+            self.groupTogetherPanel.pack_forget()
+            self.mainPanel.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+            self.waitingForInput=False
