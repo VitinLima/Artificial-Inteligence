@@ -33,24 +33,24 @@ class App(tk.Tk):
         self.isAlive = False
         self.destroy()
 
-class WPanel(tk.Frame):
-    def __init__(self, master=None, cnf={}, **kw):
-        tk.Frame.__init__(self, master, cnf, **kw)
+# class WPanel(tk.Frame):
+#     def __init__(self, master=None, cnf={}, **kw):
+#         tk.Frame.__init__(self, master, cnf, **kw)
     
-    def bt1Cb(self):
-        pass
+#     def bt1Cb(self):
+#         pass
     
-    def bt2Cb(self):
-        pass
+#     def bt2Cb(self):
+#         pass
     
-    def getRoot(self):
-        if self.master==None:
-            return None
-        return self.master.getRoot()
+#     def getRoot(self):
+#         if self.master==None:
+#             return None
+#         return self.master.getRoot()
 
-def foo():
-    global app, frame1, optPanel
-    print(optPanel.pack(side=tk.LEFT, fill=tk.BOTH, expand=True))
+# def foo():
+#     global app, frame1, optPanel
+#     print(optPanel.pack(side=tk.LEFT, fill=tk.BOTH, expand=True))
 
 if __name__=="__main__":
     try:
