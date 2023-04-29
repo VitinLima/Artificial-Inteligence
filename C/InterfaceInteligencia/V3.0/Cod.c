@@ -21,7 +21,7 @@ int main(){
 	
 	int BatchSize, GamesMove;
 	boolean Convergence = FALSE, Convergence_Parameter;
-	boolean opt = Display_Initialize_Simulation(&BatchSize, &GamesMove, &Convergence_Parameter);
+	boolean RandomBehaviourFlag = Display_Initialize_Simulation(&BatchSize, &GamesMove, &Convergence_Parameter);
 	
 	int i, j, k;
 	
@@ -29,7 +29,7 @@ int main(){
 	
 	float temp1, temp2;
 	
-	float RandomBehaviour = 4.0f, DeltaRandomBehaviour = 0.01f, Decision[4], z;
+	float RandomBehaviour = 0.0f, DeltaRandomBehaviour = 0.0f, Decision[4], z;
 	
 	//PrintaSistema();
 	//PrintWCBC();
@@ -48,7 +48,7 @@ int main(){
 				Choice1 = i+1;
 				temp1 = L[Nc-1][i];
 			}
-		if(opt)
+		if(RandomBehaviourFlag)
 			z = Sigmoid(RandomBehaviour);
 		else
 			z = 0.0f;
@@ -64,7 +64,7 @@ int main(){
 			}
 		
 		if(Game_Id%GamesMove == 0 && Game_Id > 0){
-			PrintInformation(Game_Id, flag2, Choice2, RandomBehaviour);
+			PrintInformation(Game_Id, flag2, Choice2, RandomBehaviourFlag, RandomBehaviour);
 			Sleep(100);
 		}
 		
@@ -79,15 +79,15 @@ int main(){
 				flag3++;
 				BackPropagation(FALSE, 1.0f, Choice2, BatchSize);
 				Game_Id++;
-				Reset_Game(Game_Id, GamesMove, RandomBehaviour, flag2);
-				if(Choice1==Choice2 && RandomBehaviour < 100)
+				Reset_Game(Game_Id, GamesMove, RandomBehaviourFlag, RandomBehaviour, flag2);
+				if(RandomBehaviourFlag && Choice1==Choice2 && RandomBehaviour < 100)
 					RandomBehaviour += DeltaRandomBehaviour;
 			} else{
 				if(flag1 == 1){
 					flag2++;
 					flag3++;
 					BackPropagation(TRUE, 1.0f, Choice2, BatchSize);
-					if(Choice1==Choice2 && RandomBehaviour >= -10.0f)
+					if(RandomBehaviourFlag && Choice1==Choice2 && RandomBehaviour >= -10.0f)
 						RandomBehaviour -= DeltaRandomBehaviour;
 				}
 			}

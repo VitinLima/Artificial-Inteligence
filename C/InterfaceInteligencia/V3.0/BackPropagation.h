@@ -57,6 +57,7 @@ void BackPropagation(boolean Incentivo, float Magnitude, int Choice, int BatchSi
 				for(k = 0; k < I[i]; k++)
 					LC[i-1][k] += LC[i][j]*W[i][j][k]*DSigmoid(z);
 	}
+	//printf("BackPropagation done\n");
 }
 
 void Processa(){
@@ -104,6 +105,7 @@ void ZeraWCBC(){
 			for(k = 0; k < I[i]; k++)
 				WC[i][j][k] = 0;
 		}
+	//printf("ZeraWCBC done\n");
 }
 
 void Mutation(){
@@ -133,11 +135,16 @@ void AlocaWBWCBCLM(){
 	BC = malloc(sizeof(float*)*(Nc-1));
 	L = malloc(sizeof(float*)*Nc);
 	LC = malloc(sizeof(float*)*(Nc-1));
+
+	//printf("%d %d %d %d\n", Nc, I[0], I[1], I[2]);
+	//printf()
+	//char c;
+	//scanf("%d", &c);
 	
 	for(i = 0; i < Nc-1; i++){
 		W[i] = malloc(sizeof(float*)*I[i+1]);
 		B[i] = malloc(sizeof(float)*I[i+1]);
-		WC[i] = malloc(sizeof(float)*I[i+1]);
+		WC[i] = malloc(sizeof(float*)*I[i+1]);
 		BC[i] = malloc(sizeof(float)*I[i+1]);
 		LC[i] = malloc(sizeof(float)*I[i+1]);
 		for(j = 0; j < I[i+1]; j++){
@@ -149,6 +156,7 @@ void AlocaWBWCBCLM(){
 		L[i] = malloc(sizeof(float*)*I[i]);
 	
 	M = malloc(sizeof(float)*I[0]);
+	//printf("AlocaWBWCBCLM done\n");
 }
 
 void DESALOCAWBWCBCLLCIM(){
@@ -238,8 +246,10 @@ boolean Inicializa_BackPropagation(){
 	ZeraWCBC();
 	
 	IniciaWB(opt, A);
-	
-	fclose(A);
+	if(opt){
+		fclose(A);
+	}
+	//printf("Inicializa_BackPropagation done\n");
 	
 	return FALSE;
 }

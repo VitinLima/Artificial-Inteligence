@@ -1,11 +1,11 @@
-void Check_Display_Info(int Game_Id, int Id_Game_Display, float RandomBehaviour, int flag2){
+void Check_Display_Info(int Game_Id, int Id_Game_Display, boolean RandomBehaviourFlag, float RandomBehaviour, int flag2){
 	//printf("Check Display Info\n");
 	if((100*Game_Id)%Id_Game_Display == 0){
 		float Percent = (float)Game_Id/(float)Id_Game_Display;
 		Percent *= 100.0f;
 		while(Percent > 100.0f)
 			Percent -= 100.0f;
-		Display_Percentage(Percent, RandomBehaviour, flag2);
+		Display_Percentage(Percent, RandomBehaviourFlag, RandomBehaviour, flag2);
 		
 		
 		/*int casas_decimais;
@@ -53,7 +53,22 @@ void New_Food(){
 			New_Food();
 }
 
-void Reset_Game(int Game_Id, int Id_Game_Display, float RandomBehaviour, int flag2){
+void Update_Map(){
+	//printf("Update Map\n");
+	int i, j;
+	for(i = 0; i < Ngy; i++)
+		for(j = 0; j < Ngx; j++)
+			Map[i][j] = 0;
+	for(i = 0; i < Tamanho; i++)
+		if(x[i] != -1 && y[i] != -1)
+			Map[y[i]][x[i]] = 1;
+	
+	for(i = 0; i < Np ; i++)
+		Map[yp[i]][xp[i]] = 1;
+	Map[yc][xc] = 2;
+}
+
+void Reset_Game(int Game_Id, int Id_Game_Display, boolean RandomBehaviourFlag, float RandomBehaviour, int flag2){
 	//printf("ResetGame\n");
 	
 	if(Score > Max_Score)
@@ -76,7 +91,7 @@ void Reset_Game(int Game_Id, int Id_Game_Display, float RandomBehaviour, int fla
 	
 	Update_Map();
 	
-	Check_Display_Info(Game_Id, Id_Game_Display, RandomBehaviour, flag2);
+	Check_Display_Info(Game_Id, Id_Game_Display, RandomBehaviourFlag, RandomBehaviour, flag2);
 }
 
 boolean Check_Food(){
@@ -117,21 +132,6 @@ boolean Check_Game_Over(){
 	if(Moves == 0)
 		return TRUE;
 	return FALSE;
-}
-
-void Update_Map(){
-	//printf("Update Map\n");
-	int i, j;
-	for(i = 0; i < Ngy; i++)
-		for(j = 0; j < Ngx; j++)
-			Map[i][j] = 0;
-	for(i = 0; i < Tamanho; i++)
-		if(x[i] != -1 && y[i] != -1)
-			Map[y[i]][x[i]] = 1;
-	
-	for(i = 0; i < Np ; i++)
-		Map[yp[i]][xp[i]] = 1;
-	Map[yc][xc] = 2;
 }
 
 int Game(int Direction){

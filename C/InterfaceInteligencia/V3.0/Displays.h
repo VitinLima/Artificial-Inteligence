@@ -1,6 +1,10 @@
-void Display_Percentage(float Percent, float RandomBehaviour, int flag2){
+void Display_Percentage(float Percent, boolean RandomBehaviourFlag, float RandomBehaviour, int flag2){
 	system("@cls||clear");
-	printf("Percentage until next visualization: %.0f%%\nScored so far: %d\n\nMax Score: %d\tRandom Behaviour: %.2f\n", 100.0f - Percent, flag2, Max_Score, RandomBehaviour);
+	if(RandomBehaviourFlag){
+		printf("Percentage until next visualization: %.0f%%\nScored so far: %d\n\nMax Score: %d\tRandom Behaviour: %.2f\n", 100.0f - Percent, flag2, Max_Score, RandomBehaviour);
+	} else{
+		printf("Percentage until next visualization: %.0f%%\nScored so far: %d\n\nMax Score: %d\n", 100.0f - Percent, flag2, Max_Score);
+	}
 }
 
 void Display_Layers(){
@@ -12,14 +16,18 @@ void Display_Layers(){
 	}
 }
 
-void PrintInformation(int Game_Id, int flag2, int D, float RandomBehaviour){
+void PrintInformation(int Game_Id, int flag2, int D, boolean RandomBehaviourFlag, float RandomBehaviour){
 	system("@cls||clear");
 	printf("PrintInformation\n");
 	printf("\n\n");
 	Display_Layers();
 	printf("\n\n");
 	int i, j;
-	printf("\n\nGame number %d\t\tRandom Behaviour %.3f\n", Game_Id, RandomBehaviour);
+	if(RandomBehaviourFlag){
+		printf("\n\nGame number %d\t\tRandom Behaviour %.3f\n", Game_Id, RandomBehaviour);
+	} else{
+		printf("\n\nGame number %d\n", Game_Id);
+	}
 	printf("\nScore: %d\t\tMax Score: %d\t\tMovements left: %d\t\tScored so far: %d\n\nx: %d\ty: %d\txc: %d\tyc: %d\n\n", Score, Max_Score, Moves, flag2, x[0], y[0], xc, yc);
 	for(i = 0; i < Ngy; i++){
 		for(j = 0; j < Ngx; j++){
@@ -90,7 +98,9 @@ boolean Display_BackPropagation_Loading(FILE **A){
 }
 
 void AlocaI(boolean opt, FILE *A){
-	//printf("AlocaI\n");
+	//printf("AlocaI %d\n", Nc);
+	//int c;
+	//scanf("%d", &c);
 	int i;
 	I = malloc(sizeof(int)*Nc);
 	if(opt){
@@ -106,6 +116,7 @@ void AlocaI(boolean opt, FILE *A){
 	}
 	I[0] = 8;
 	I[Nc-1] = 4;
+	//printf("%d %d %d\n", I[0], I[1], I[2]);
 }
 
 void Display_Error_In_Loading(){
