@@ -1,3 +1,5 @@
+#include "defines.h"
+
 float Det(float **Matrix, int N){
 	int i, j, k, b;
 	float Determinante = 1, Ni, Nj;

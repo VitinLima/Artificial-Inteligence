@@ -4,6 +4,8 @@
 #include "BackPropagation.h"
 #include "AcopladasCobrinha.h"
 #include <time.h>
+#include <unistd.h>
+#include "defines.h"
 
 int main(){
 	srand(time(0));
@@ -55,7 +57,7 @@ int main(){
 	boolean opt = FALSE;
 	
 	printf("\nStarting game\n");
-	while(!kbhit()){
+	while(TRUE){
 		GetSurroundings(M, G, Pos, Ng, Nc);
 		PutSurroundings(M);
 		Processa(Nc, I);
@@ -85,7 +87,7 @@ int main(){
 		
 		if(Game_Id%GamesMove == 0 && Game_Id > 0){
 			PrintInformation(Nc, I, Ng, G, Pos, Game_Id, score, flag2, Choice2, Moves, RandomBehaviour);
-			//Sleep(100);
+			usleep(100000);
 		}
 		
 		flag = Game(G, t, &score, Pos, Choice2, &Moves, Ng);
@@ -108,7 +110,7 @@ int main(){
 			else
 				if(flag == 3){
 					//flag3++;
-					//BackPropagation(Nc, I, FALSE, Choice2, BatchSize);
+					BackPropagation(Nc, I, FALSE, Choice2, BatchSize);
 					ResetGame(G, t, Pos, &score, &Moves, Ng);
 					Game_Id++;
 				}
@@ -119,7 +121,7 @@ int main(){
 			ZeraWCBC(Nc, I);
 		}
 	}
-	char c = getch();
+	// char c = getch();
 	
 	FILE *A;
 	printf("Saving\n\n");

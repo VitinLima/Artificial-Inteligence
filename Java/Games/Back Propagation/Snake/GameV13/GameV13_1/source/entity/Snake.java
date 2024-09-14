@@ -29,7 +29,7 @@ public class Snake extends Entity{
 		scored = 0;
 		max_score = 0;
 		
-		field_of_view = 4;
+		field_of_view = 1;
 		ai = new AI_Mem_Draw(new int[]{2*(2*field_of_view+1)*(2*field_of_view+1), 4}, 3*field_of_view);
 		ai.frecursive_layer(1,1);
 		ai.frecursive_layer(0,1);

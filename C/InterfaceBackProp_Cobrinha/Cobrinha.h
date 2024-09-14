@@ -1,7 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <conio.h>
-#include <windows.h>
+// #include <conio.h>
+// #include <windows.h>
+#include "defines.h"
 
 int Game(int **G, int **t, int *score, int *p, int D, int *Moves, int N){
 	int b = 1;
@@ -90,11 +91,11 @@ void Inicializa_Game(int ***G, int ***t, int *score, int *Moves, int *N, int *Po
 	//	*N = 28;
 	//printf("\n\n");
 	*N = 10;
-	*G = malloc(sizeof(int*)*(*N));
-	*t = malloc(sizeof(int*)*(*N));
+	*G = (int**)malloc(sizeof(int*)*(*N));
+	*t = (int**)malloc(sizeof(int*)*(*N));
 	for(i = 0; i < *N; i++){
-		(*G)[i] = malloc(sizeof(int)*(*N));
-		(*t)[i] = malloc(sizeof(int)*(*N));
+		(*G)[i] = (int*)malloc(sizeof(int)*(*N));
+		(*t)[i] = (int*)malloc(sizeof(int)*(*N));
 	}
 	
 	for(i = 0; i < *N; i++)

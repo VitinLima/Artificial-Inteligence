@@ -1,4 +1,4 @@
-
+#include "defines.h"
 
 void ResetGame(int **G, int **t, int *P, int *score, int *Moves, int N){
 	*score = 0;

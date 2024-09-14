@@ -1,8 +1,6 @@
 public class main{
 	public static void main(String[] args){
 		AIConstructor ai = new AIConstructor(new int[]{1,2});
-	}
-}
 
 /*
 		
@@ -57,3 +55,5 @@ public class main{
 			System.out.println(sAns + "\n\n");
 		}
 */
+	}
+}

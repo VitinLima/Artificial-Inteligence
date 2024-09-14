@@ -68,8 +68,8 @@ class Snake:
         elif self.field[self.head[0]][self.head[1]-1] is []:
             self.brain.neurons[0].activation = 1.0
         
-        if self.head[1] == len(field)-1:
-            
+        # if self.head[1] == len(field)-1:
+        #     pass
     
     def birth(self, x_head, y_head):
         self.body = [[x_head, y_head]]

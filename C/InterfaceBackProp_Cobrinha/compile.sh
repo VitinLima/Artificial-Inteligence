@@ -1,0 +1,1 @@
+gcc Cod.c -o codlinux

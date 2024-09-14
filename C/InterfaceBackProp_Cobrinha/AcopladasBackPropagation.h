@@ -1,3 +1,5 @@
+#include "defines.h"
+
 void PrintaSistema(int N, int *I){
 	printf("\nPrintaSistema\n");
 	int i, j, k;

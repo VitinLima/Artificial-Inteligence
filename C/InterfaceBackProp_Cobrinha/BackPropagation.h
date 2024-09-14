@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include "Funcoes.h"
+#include "defines.h"
 
 float ***W, ***WC;
 float **B, **BC;
@@ -42,7 +43,7 @@ int Inicializa_BackPropagation(int **I, int *N){
 	
 	int i, j;
 	
-	*I = malloc(sizeof(int)*(*N));
+	*I = (int*)malloc(sizeof(int)*(*N));
 	if(opt == 2){
 		for(i = 1; i < *N-1; i++){
 			printf("\nNumber of Neurons of Layer %d\n\n", i);
@@ -56,26 +57,26 @@ int Inicializa_BackPropagation(int **I, int *N){
 		for(i = 0; i < *N; i++)
 			fscanf(A, "%d", &(*I)[i]);
 	
-	W = malloc(sizeof(float**)*(*N-1));
-	B = malloc(sizeof(float*)*(*N-1));
-	WC = malloc(sizeof(float**)*(*N-1));
-	BC = malloc(sizeof(float*)*(*N-1));
-	L = malloc(sizeof(float*)*(*N));
-	LC = malloc(sizeof(float*)*(*N-1));
+	W = (float***)malloc(sizeof(float**)*(*N-1));
+	B = (float**)malloc(sizeof(float*)*(*N-1));
+	WC = (float***)malloc(sizeof(float**)*(*N-1));
+	BC = (float**)malloc(sizeof(float*)*(*N-1));
+	L = (float**)malloc(sizeof(float*)*(*N));
+	LC = (float**)malloc(sizeof(float*)*(*N-1));
 	
 	for(i = 0; i < *N-1; i++){
-		W[i] = malloc(sizeof(float*)*(*I)[i+1]);
-		B[i] = malloc(sizeof(float)*(*I)[i+1]);
-		WC[i] = malloc(sizeof(float*)*(*I)[i+1]);
-		BC[i] = malloc(sizeof(float)*(*I)[i+1]);
-		LC[i] = malloc(sizeof(float)*(*I)[i+1]);
+		W[i] = (float**)malloc(sizeof(float*)*(*I)[i+1]);
+		B[i] = (float*)malloc(sizeof(float)*(*I)[i+1]);
+		WC[i] = (float**)malloc(sizeof(float*)*(*I)[i+1]);
+		BC[i] = (float*)malloc(sizeof(float)*(*I)[i+1]);
+		LC[i] = (float*)malloc(sizeof(float)*(*I)[i+1]);
 		for(j = 0; j < (*I)[i+1]; j++){
-			W[i][j] = malloc(sizeof(float)*(*I)[i]);
-			WC[i][j] = malloc(sizeof(float)*(*I)[i]);
+			W[i][j] = (float*)malloc(sizeof(float)*(*I)[i]);
+			WC[i][j] = (float*)malloc(sizeof(float)*(*I)[i]);
 		}
 	}
 	for(i = 0; i < *N; i++)
-		L[i] = malloc(sizeof(float*)*(*I)[i]);
+		L[i] = (float*)malloc(sizeof(float*)*(*I)[i]);
 	
 	int n = *N;
 	IniciaWB(n, *I, opt, A);
