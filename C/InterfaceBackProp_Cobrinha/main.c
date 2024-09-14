@@ -13,6 +13,8 @@
 
 int main(){
 	srand(time(0));
+	// G: Mapa de comida
+	// t: Mapa da cobrinha
 	int **G, **t, Moves, score = 0, Ng;
 	int Pos[2];
 	Inicializa_Game(&G, &t, &score, &Moves, &Ng, Pos);
@@ -36,7 +38,7 @@ int main(){
 	
 	int Choice1, Choice2, b = 0, flag, flag2 = 0, flag3 = 0, Game_Id = 0;
 	float temp1, temp2;
-	float M[20];
+	float M[20]; // Entradas da NN
 	float C;
 	
 	int BatchSize;
@@ -61,7 +63,10 @@ int main(){
 	boolean opt = FALSE;
 	
 	printf("\nStarting game\n");
-	while(TRUE){
+    pthread_t thread_id;
+    pthread_create(&thread_id, NULL, thread_run, NULL);
+	int running = TRUE;
+	while(running){
 		GetSurroundings(M, G, Pos, Ng, Nc);
 		PutSurroundings(M);
 		Processa(Nc, I);
@@ -123,6 +128,27 @@ int main(){
 			Corrige(Nc, I);
 			flag3 = 0;
 			ZeraWCBC(Nc, I);
+		}
+		while(available()>0){
+			char c = kbmanager_read();
+			if(c=='s'){
+				running = FALSE;
+			} else if(c=='p'){
+				// opt = pause_menu();
+				// running = FALSE;
+				int paused = 1;
+				while(paused){
+					if(available()){
+						c = kbmanager_read();
+						if(c=='s'){
+							paused = 0;
+							running = 0;
+						} else if(c=='p'){
+							paused = 0;
+						}
+					}
+				}
+			}
 		}
 	}
 	// char c = getch();

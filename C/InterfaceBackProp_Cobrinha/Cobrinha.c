@@ -49,7 +49,7 @@ int Game(int **G, int **t, int *score, int *p, int D, int *Moves, int N){
 	for(i = 0; i < N; i++)
 		for(j = 0; j < N; j++)
 			if(t[i][j] > -1)
-			t[i][j] -= 1;
+				t[i][j] -= 1;
 
 	if(optMoves)
 		*Moves-=1;
