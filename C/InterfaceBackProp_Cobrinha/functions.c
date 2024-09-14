@@ -1,4 +1,4 @@
-#include "defines.h"
+#include "functions.h"
 
 float Det(float **Matrix, int N){
 	int i, j, k, b;
