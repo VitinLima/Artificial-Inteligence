@@ -1,6 +1,9 @@
 #ifndef FUNCTIONS_H
 #define FUNCTIONS_H
 
+#include <stdlib.h>
+#include <stdio.h>
+
 #include "defines.h"
 
 float Det(float **Matrix, int N);

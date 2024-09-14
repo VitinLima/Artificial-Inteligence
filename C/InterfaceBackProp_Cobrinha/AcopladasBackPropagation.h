@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "defines.h"
+#include "BackPropagation.h"
 
 void PrintaSistema(int N, int *I);
 float DSigmoid(float P);
@@ -18,4 +19,4 @@ void NivelaWB(int N, int *I);
 void PrintInformation(int Nc, int *I, int Ng, int **G, int *Pos, int Game_Id, int score, int flag2, int D, int Moves, float RandomBehaviour);
 void Mutation(int N, int *I);
 
-#endif;
+#endif

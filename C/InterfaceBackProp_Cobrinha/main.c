@@ -1,10 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "Cobrinha.h"
-#include "BackPropagation.h"
-#include "AcopladasCobrinha.h"
 #include <time.h>
 #include <unistd.h>
+
+#include "Cobrinha.h"
+#include "AcopladasCobrinha.h"
+#include "BackPropagation.h"
+#include "AcopladasBackPropagation.h"
 #include "defines.h"
 
 int main(){

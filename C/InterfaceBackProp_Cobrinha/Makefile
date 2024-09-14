@@ -22,7 +22,7 @@ functions.o: functions.c
 BackPropagation.o: BackPropagation.c
 	gcc -c BackPropagation.c -o BackPropagation.o
 
-main.out: main.o Cobrinha.o functions.o BackPropagation.o AcopladasCobrinha.o AcopladasBackPropagation.o defines.h $(kb_listener_folder)/KBManager.o
+main.out: main.o Cobrinha.o functions.o BackPropagation.o AcopladasCobrinha.o AcopladasBackPropagation.o defines.h
 	gcc -o main.out main.o $(kb_listener_folder)/KBManager.o Cobrinha.o functions.o BackPropagation.o AcopladasCobrinha.o AcopladasBackPropagation.o
 
 clean:

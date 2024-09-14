@@ -3,7 +3,9 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+
 #include "defines.h"
+#include "BackPropagation.h"
 
 void ResetGame(int **G, int **t, int *P, int *score, int *Moves, int N);
 void PutSurroundings(float *M);

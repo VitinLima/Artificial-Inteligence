@@ -9,9 +9,9 @@
 #include "defines.h"
 #include "AcopladasBackPropagation.h"
 
-float ***W, ***WC;
-float **B, **BC;
-float **L, **LC;
+extern float ***W, ***WC;
+extern float **B, **BC;
+extern float **L, **LC;
 
 int Inicializa_BackPropagation(int **I, int *N);
 

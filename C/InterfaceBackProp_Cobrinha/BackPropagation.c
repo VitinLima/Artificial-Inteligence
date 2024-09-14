@@ -1,5 +1,9 @@
 #include "BackPropagation.h"
 
+float ***W, ***WC;
+float **B, **BC;
+float **L, **LC;
+
 int Inicializa_BackPropagation(int **I, int *N){
 	printf("Inicia Back Propagation\n\n");
 	int opt;
