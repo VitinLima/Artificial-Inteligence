@@ -9,6 +9,8 @@
 #include "AcopladasBackPropagation.h"
 #include "defines.h"
 
+#include "kb_listener.h"
+
 int main(){
 	srand(time(0));
 	int **G, **t, Moves, score = 0, Ng;
